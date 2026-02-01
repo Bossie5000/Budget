@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Budget Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Monthly Budget Tracker</h1>
+
+        <!-- Month Selection -->
+        <div class="month-selector">
+            <label for="month-select">Current Month:</label>
+            <select id="month-select">
+                <!-- Populated by JavaScript -->
+            </select>
+            <button id="add-month-btn" class="btn">Add New Month</button>
+            <button id="next-month-btn" class="btn">Next Month</button>
+            <div class="data-controls">
+                <button id="import-data-btn" class="btn btn-import">📥 Import Data</button>
+                <button id="export-data-btn" class="btn btn-export">📤 Export Data</button>
+                <input type="file" id="file-input" accept=".json" style="display: none;">
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="income">Income</button>
+            <button class="tab-btn" data-tab="fuel">Fuel Advance</button>
+            <button class="tab-btn" data-tab="expenses">Expenses</button>
+            <button class="tab-btn" data-tab="accounts">Accounts</button>
+            <button class="tab-btn" data-tab="summary">Summary</button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="tab-content">
+            <!-- Income Tab -->
+            <div id="income-tab" class="tab-pane active">
+                <h2>Income Sources</h2>
+                <div class="table-container">
+                    <table id="income-table">
+                        <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Amount (R)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="income-tbody">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="button-group">
+                    <button id="add-income-btn" class="btn btn-primary">Add Income</button>
+                    <button id="edit-income-btn" class="btn">Edit Income</button>
+                    <button id="delete-income-btn" class="btn btn-danger">Delete Income</button>
+                </div>
+            </div>
+
+            <!-- Fuel Advance Tab -->
+            <div id="fuel-tab" class="tab-pane">
+                <div class="section">
+                    <h3>Monthly Fuel Advance</h3>
+                    <div class="form-group">
+                        <label for="fuel-advance">Fuel Advance Amount:</label>
+                        <input type="number" id="fuel-advance" step="0.01" min="0">
+                        <button id="update-fuel-advance-btn" class="btn">Update Advance</button>
+                    </div>
+                </div>
+
+                <h2>Fuel Purchases</h2>
+                <div class="table-container">
+                    <table id="fuel-table">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th>Amount (R)</th>
+                                <th>Date</th>
+                                <th>Paid</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fuel-tbody">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="button-group">
+                    <button id="add-fuel-btn" class="btn btn-primary">Add Fuel Purchase</button>
+                    <button id="edit-fuel-btn" class="btn">Edit Purchase</button>
+                    <button id="delete-fuel-btn" class="btn btn-danger">Delete Purchase</button>
+                    <button id="toggle-fuel-paid-btn" class="btn">Toggle Paid</button>
+                </div>
+
+                <div class="fuel-summary" id="fuel-summary">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Expenses Tab -->
+            <div id="expenses-tab" class="tab-pane">
+                <div class="expense-tabs">
+                    <button class="expense-tab-btn active" data-category="fixed">Fixed Expenses</button>
+                    <button class="expense-tab-btn" data-category="flexible">Flexible Expenses</button>
+                    <button class="expense-tab-btn" data-category="subscriptions">Subscriptions</button>
+                    <button class="expense-tab-btn" data-category="international_bank">International Bank Fees</button>
+                    <button class="expense-tab-btn" data-category="ad_hoc">Ad Hoc Expenses</button>
+                </div>
+
+                <div class="expense-content">
+                    <div id="fixed-expense" class="expense-pane active">
+                        <h2>Fixed Expenses</h2>
+                        <div class="table-container">
+                            <table class="expense-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Amount (R)</th>
+                                        <th>Day of Month</th>
+                                        <th>Paid</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fixed-tbody">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="button-group">
+                            <button class="add-expense-btn btn btn-primary" data-category="fixed">Add Expense</button>
+                            <button class="edit-expense-btn btn" data-category="fixed">Edit Expense</button>
+                            <button class="delete-expense-btn btn btn-danger" data-category="fixed">Delete Expense</button>
+                            <button class="toggle-expense-paid-btn btn" data-category="fixed">Toggle Paid</button>
+                        </div>
+                    </div>
+
+                    <div id="flexible-expense" class="expense-pane">
+                        <h2>Flexible Expenses</h2>
+                        <div class="table-container">
+                            <table class="expense-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Amount (R)</th>
+                                        <th>Day of Month</th>
+                                        <th>Paid</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="flexible-tbody">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="button-group">
+                            <button class="add-expense-btn btn btn-primary" data-category="flexible">Add Expense</button>
+                            <button class="edit-expense-btn btn" data-category="flexible">Edit Expense</button>
+                            <button class="delete-expense-btn btn btn-danger" data-category="flexible">Delete Expense</button>
+                            <button class="toggle-expense-paid-btn btn" data-category="flexible">Toggle Paid</button>
+                        </div>
+                    </div>
+
+                    <div id="subscriptions-expense" class="expense-pane">
+                        <h2>Subscriptions</h2>
+                        <div class="table-container">
+                            <table class="expense-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Amount (R)</th>
+                                        <th>Day of Month</th>
+                                        <th>Paid</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subscriptions-tbody">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="button-group">
+                            <button class="add-expense-btn btn btn-primary" data-category="subscriptions">Add Expense</button>
+                            <button class="edit-expense-btn btn" data-category="subscriptions">Edit Expense</button>
+                            <button class="delete-expense-btn btn btn-danger" data-category="subscriptions">Delete Expense</button>
+                            <button class="toggle-expense-paid-btn btn" data-category="subscriptions">Toggle Paid</button>
+                        </div>
+                    </div>
+
+                    <div id="international_bank-expense" class="expense-pane">
+                        <h2>International Bank Fees</h2>
+                        <div class="table-container">
+                            <table class="expense-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Amount (R)</th>
+                                        <th>Date</th>
+                                        <th>Paid</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="international_bank-tbody">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="button-group">
+                            <button class="add-expense-btn btn btn-primary" data-category="international_bank">Add Expense</button>
+                            <button class="edit-expense-btn btn" data-category="international_bank">Edit Expense</button>
+                            <button class="delete-expense-btn btn btn-danger" data-category="international_bank">Delete Expense</button>
+                            <button class="toggle-expense-paid-btn btn" data-category="international_bank">Toggle Paid</button>
+                        </div>
+                    </div>
+
+                    <div id="ad_hoc-expense" class="expense-pane">
+                        <h2>Ad Hoc Expenses</h2>
+                        <div class="table-container">
+                            <table class="expense-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Amount (R)</th>
+                                        <th>Date</th>
+                                        <th>Paid</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ad_hoc-tbody">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="button-group">
+                            <button class="add-expense-btn btn btn-primary" data-category="ad_hoc">Add Expense</button>
+                            <button class="edit-expense-btn btn" data-category="ad_hoc">Edit Expense</button>
+                            <button class="delete-expense-btn btn btn-danger" data-category="ad_hoc">Delete Expense</button>
+                            <button class="toggle-expense-paid-btn btn" data-category="ad_hoc">Toggle Paid</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accounts Tab -->
+            <div id="accounts-tab" class="tab-pane">
+                <h2>Other Accounts Tracking</h2>
+
+                <div class="account-section">
+                    <h3>Credit Account</h3>
+                    <div class="form-group">
+                        <label for="credit-balance">Balance:</label>
+                        <input type="number" id="credit-balance" step="0.01">
+                        <button id="update-credit-btn" class="btn">Update Credit Balance</button>
+                    </div>
+                    <div class="account-display" id="credit-display">Current: R0.00</div>
+                </div>
+
+                <div class="account-section">
+                    <h3>Savings Account</h3>
+                    <div class="form-group">
+                        <label for="savings-balance">Balance:</label>
+                        <input type="number" id="savings-balance" step="0.01">
+                        <button id="update-savings-btn" class="btn">Update Savings Balance</button>
+                    </div>
+                    <div class="account-display savings" id="savings-display">Current: R0.00</div>
+                </div>
+            </div>
+
+            <!-- Summary Tab -->
+            <div id="summary-tab" class="tab-pane">
+                <h2>Summary</h2>
+                <div class="summary-content">
+                    <pre id="summary-text"></pre>
+                </div>
+
+                <div class="balance-checker">
+                    <h3>Balance Checker</h3>
+                    <div class="form-group">
+                        <label for="actual-balance">Actual Account Balance:</label>
+                        <input type="number" id="actual-balance" step="0.01">
+                        <button id="check-balance-btn" class="btn">Check Balance</button>
+                    </div>
+                    <div id="balance-check-result"></div>
+                </div>
+
+                <button id="refresh-summary-btn" class="btn btn-primary">Refresh Summary</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for dialogs -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title">Dialog</h2>
+            <div id="modal-body">
+                <!-- Populated dynamically -->
+            </div>
+            <div class="modal-buttons">
+                <button id="modal-ok-btn" class="btn btn-primary">OK</button>
+                <button id="modal-cancel-btn" class="btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
