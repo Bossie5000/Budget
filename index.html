@@ -44,8 +44,7 @@
 
         /* Layout */
         .app {
-            display: grid;
-            grid-template-columns: 220px 1fr;
+            display: flex;
             min-height: 100vh;
         }
 
@@ -60,6 +59,13 @@
             top: 0;
             height: 100vh;
             overflow-y: auto;
+            width: 220px;
+            min-width: 220px;
+        }
+
+        .main {
+            flex: 1;
+            min-width: 0;
         }
 
         .logo {
@@ -204,7 +210,8 @@
         .main {
             padding: 32px 40px;
             max-width: 1100px;
-            width: 100%;
+            flex: 1;
+            min-width: 0;
         }
 
         .page-header {
@@ -779,71 +786,88 @@
             font-size: 13px;
         }
 
-        /* Mobile month selector - hidden on desktop */
+        /* Mobile header - hidden on desktop */
         .mobile-header {
             display: none;
             margin-bottom: 16px;
         }
 
-        /* Responsive */
+        /* ─── MOBILE ─── */
         @media (max-width: 768px) {
+            /* Kill the flex row layout, just stack */
             .app {
-                grid-template-columns: 1fr;
-                grid-template-rows: 1fr auto;
+                display: block;
             }
 
+            /* Bottom nav bar */
             .sidebar {
                 position: fixed;
                 bottom: 0;
                 left: 0;
                 right: 0;
-                height: auto;
-                width: 100%;
+                top: auto !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                height: auto !important;
+                max-height: 70px;
                 flex-direction: row;
                 overflow-x: auto;
                 overflow-y: hidden;
-                padding: 6px 8px;
+                padding: 4px 4px 8px;
                 z-index: 100;
                 border-right: none;
                 border-top: 1px solid var(--border);
-                gap: 0;
+                background: var(--surface);
             }
 
-            .logo, .nav-label, .sidebar-footer, .month-select-wrap, .sidebar-actions { display: none !important; }
+            /* Hide everything except the nav buttons */
+            .sidebar .logo,
+            .sidebar .nav-label,
+            .sidebar .sidebar-footer,
+            .sidebar .month-select-wrap,
+            .sidebar .sidebar-actions {
+                display: none !important;
+            }
 
-            .nav-section {
-                display: flex;
-                flex-direction: row;
-                gap: 2px;
+            .sidebar .nav-section {
+                display: flex !important;
+                flex-direction: row !important;
+                gap: 0;
                 padding: 0;
                 margin: 0;
                 width: 100%;
                 justify-content: space-around;
+                align-items: stretch;
             }
 
-            .nav-btn {
+            .sidebar .nav-btn {
                 flex-direction: column;
                 font-size: 10px;
-                padding: 8px 10px;
-                gap: 3px;
+                padding: 6px 4px;
+                gap: 2px;
                 white-space: nowrap;
                 min-width: 0;
                 flex: 1;
                 text-align: center;
                 justify-content: center;
+                align-items: center;
                 border-radius: 6px;
             }
 
-            .nav-btn .icon {
-                font-size: 18px;
+            .sidebar .nav-btn .icon {
+                font-size: 20px;
                 width: auto;
+                line-height: 1;
             }
 
+            /* Main area */
             .main {
-                padding: 16px 14px 90px;
+                padding: 16px 14px 100px !important;
                 min-height: 100vh;
+                max-width: 100% !important;
             }
 
+            /* Show mobile header */
             .mobile-header {
                 display: flex;
                 gap: 6px;
@@ -851,68 +875,32 @@
                 flex-wrap: wrap;
             }
 
-            .mobile-header select {
-                flex: 1;
-                min-width: 0;
-            }
+            .mobile-header select { flex: 1; min-width: 0; }
 
-            .stat-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-            }
-
+            /* Cards & grids */
+            .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
             .stat-card { padding: 14px 16px; }
-            .stat-value { font-size: 18px; }
+            .stat-value { font-size: 17px; }
 
-            .form-row {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 8px;
-            }
-
+            .form-row { flex-direction: column; align-items: stretch; gap: 8px; }
             .form-label { min-width: auto; }
             .form-input { width: 100%; }
 
-            .panel-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
+            .panel { padding: 14px; }
+            .panel-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .panel-actions { flex-wrap: wrap; width: 100%; }
+            .panel-actions .btn { flex: 1; text-align: center; justify-content: center; min-width: 0; }
 
-            .panel-actions {
-                flex-wrap: wrap;
-                width: 100%;
-            }
+            .sub-tabs { gap: 2px; }
+            .sub-tab { padding: 6px 10px; font-size: 11.5px; }
 
-            .panel-actions .btn {
-                flex: 1;
-                text-align: center;
-                justify-content: center;
-                min-width: 0;
-            }
+            .true-balance-card { padding: 16px 18px; }
+            .true-balance-card .value { font-size: 22px; }
 
-            .sub-tabs {
-                gap: 2px;
-            }
+            .page-title { font-size: 18px; }
+            .table-wrap { margin: 0 -14px; padding: 0 14px; }
 
-            .sub-tab {
-                padding: 6px 10px;
-                font-size: 11.5px;
-            }
-
-            .true-balance-card {
-                padding: 16px 18px;
-            }
-
-            .true-balance-card .value {
-                font-size: 22px;
-            }
-
-            .modal-box {
-                width: 95%;
-                padding: 22px;
-                margin: 12px;
-            }
+            .modal-box { width: 95%; padding: 22px; margin: 12px; }
         }
 
         /* Scrollbar */
