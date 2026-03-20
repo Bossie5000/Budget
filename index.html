@@ -2093,10 +2093,14 @@ class BudgetTracker {
             const remote = await resp.json();
             const remoteData = JSON.parse(atob(remote.content.replace(/\n/g, '')));
             this.setSHA(remote.sha);
-            // Merge remote months with local
-            const mergedMonths = Object.assign({}, remoteData.months || {}, this.data.months);
+            // Merge: prefer remote months, then overlay any local-only months on top
+            const localMonths = this.data.months || {};
+            const remoteMonths = remoteData.months || {};
+            // On a fresh device local will be empty — remote wins entirely
+            // On an existing device we merge, with remote taking priority
+            const mergedMonths = Object.assign({}, localMonths, remoteMonths);
             this.data.months = mergedMonths;
-            if (!this.data.current_month) this.data.current_month = this.getCurrentMonth();
+            this.data.current_month = remoteData.current_month || this.data.current_month || this.getCurrentMonth();
             localStorage.setItem('budgetTrackerData', JSON.stringify(this.data));
             this.refreshDisplay();
             // Now push merged result back
