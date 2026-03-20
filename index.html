@@ -1064,24 +1064,25 @@
     <div class="github-setup-overlay" id="github-setup-overlay">
         <div class="github-setup-box">
             <h2>☁ GitHub Sync Setup</h2>
-            <p>Your data will be saved to a JSON file in your GitHub repo. Each person uses their own file so data stays separate.</p>
+            <p>Your app stays in its <strong style="color:var(--text-dim)">public</strong> repo (so GitHub Pages keeps working). Your data is saved to a separate <strong style="color:var(--text-dim)">private</strong> repo that only you can access.</p>
             <div class="form-group">
                 <label>GitHub Username</label>
                 <input type="text" id="gh-username" placeholder="e.g. johndoe">
             </div>
             <div class="form-group">
-                <label>Repository Name</label>
-                <input type="text" id="gh-repo" placeholder="e.g. budget-tracker">
+                <label>Data Repository <span style="color:var(--accent);font-size:10px;text-transform:none;letter-spacing:0">private repo</span></label>
+                <input type="text" id="gh-repo" placeholder="e.g. budget-data">
+                <div class="hint">Create a new <strong style="color:var(--text-dim)">private</strong> repo just for data (e.g. <code style="color:var(--accent)">budget-data</code>). Keep your app repo public so GitHub Pages works.</div>
             </div>
             <div class="form-group">
                 <label>Data Filename</label>
                 <input type="text" id="gh-filename" placeholder="e.g. data_john.json">
-                <div class="hint">Use a unique name per person (e.g. data_john.json, data_sarah.json)</div>
+                <div class="hint">Use a unique name per person — e.g. <code style="color:var(--accent)">data_john.json</code> and <code style="color:var(--accent)">data_sarah.json</code></div>
             </div>
             <div class="form-group">
                 <label>Personal Access Token</label>
                 <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx">
-                <div class="hint">Needs <strong style="color:var(--text-dim)">repo</strong> scope. Stored only in this browser. <a href="https://github.com/settings/tokens/new" target="_blank" style="color:var(--accent)">Create one here →</a></div>
+                <div class="hint">Needs <strong style="color:var(--text-dim)">repo</strong> scope to read/write the private data repo. Stored only in this browser. <a href="https://github.com/settings/tokens/new" target="_blank" style="color:var(--accent)">Create one here →</a></div>
             </div>
             <div class="github-setup-footer">
                 <button class="btn" id="gh-cancel-btn">Cancel</button>
