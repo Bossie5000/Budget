@@ -1244,7 +1244,11 @@ class BudgetTracker {
         };
         this.selectedRow = null;
         this.loadData();
-        this.initializeCurrentMonth();
+        // Only initialize current month locally if GitHub sync is not configured
+        // If sync is configured, the pull will bring down the correct data
+        if (!this.getGHConfig()) {
+            this.initializeCurrentMonth();
+        }
         this.setupEventListeners();
         this.refreshDisplay();
         this.initGitHubSync();
@@ -2093,17 +2097,30 @@ class BudgetTracker {
             const remote = await resp.json();
             const remoteData = JSON.parse(atob(remote.content.replace(/\n/g, '')));
             this.setSHA(remote.sha);
-            // Merge: prefer remote months, then overlay any local-only months on top
+
+            // Merge: remote wins for any month that exists in both
+            // Local only keeps months that don't exist remotely
             const localMonths = this.data.months || {};
             const remoteMonths = remoteData.months || {};
-            // On a fresh device local will be empty — remote wins entirely
-            // On an existing device we merge, with remote taking priority
             const mergedMonths = Object.assign({}, localMonths, remoteMonths);
-            this.data.months = mergedMonths;
-            this.data.current_month = remoteData.current_month || this.data.current_month || this.getCurrentMonth();
+
+            // Fully replace this.data with merged result
+            this.data = {
+                months: mergedMonths,
+                current_month: remoteData.current_month || this.data.current_month || this.getCurrentMonth()
+            };
+
+            // Ensure current month exists
+            if (!this.data.months[this.data.current_month]) {
+                this.initializeMonth(this.data.current_month);
+            }
+
+            // Save and force full UI refresh
             localStorage.setItem('budgetTrackerData', JSON.stringify(this.data));
+            this.updateMonthSelectors();
             this.refreshDisplay();
-            // Now push merged result back
+
+            // Push merged result back
             await this.syncToGitHub(true);
         } catch (err) {
             console.error('Pull error:', err);
