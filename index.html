@@ -1100,7 +1100,8 @@
             <button class="btn btn-sm" id="next-month-btn-mobile">→</button>
             <button class="btn btn-sm" id="import-data-btn-mobile">📥</button>
             <button class="btn btn-sm" id="export-data-btn-mobile">📤</button>
-            <button class="btn btn-sm" id="sync-now-btn-mobile">☁</button>
+            <button class="btn btn-sm" id="sync-now-btn-mobile" title="Sync Now">☁ <span id="sync-dot-mobile" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--text-muted);vertical-align:middle"></span></button>
+            <button class="btn btn-sm" id="github-settings-btn-mobile" title="GitHub Settings">⚙</button>
         </div>
 
         <!-- SUMMARY TAB -->
@@ -2000,9 +2001,14 @@ class BudgetTracker {
     setSyncStatus(state, msg) {
         const dot = document.getElementById('sync-dot');
         const label = document.getElementById('sync-label');
-        if (!dot || !label) return;
-        dot.className = 'sync-dot ' + state;
-        label.textContent = msg;
+        const dotMobile = document.getElementById('sync-dot-mobile');
+        const colorMap = { synced: 'var(--green)', syncing: 'var(--amber)', error: 'var(--red)', unconfigured: 'var(--text-muted)' };
+        const color = colorMap[state] || 'var(--text-muted)';
+        if (dot) {
+            dot.className = 'sync-dot ' + state;
+        }
+        if (label) label.textContent = msg;
+        if (dotMobile) dotMobile.style.background = color;
     }
 
     scheduleSyncDebounced() {
@@ -2140,6 +2146,7 @@ class BudgetTracker {
         // Sync now buttons (desktop + mobile)
         document.getElementById('sync-now-btn').addEventListener('click', () => this.pullFromGitHub());
         document.getElementById('sync-now-btn-mobile')?.addEventListener('click', () => this.pullFromGitHub());
+        document.getElementById('github-settings-btn-mobile')?.addEventListener('click', () => this.openGHSetup());
     }
 
     initGitHubSync() {
