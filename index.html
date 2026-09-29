@@ -1,10 +1,22 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#0f1117" id="meta-theme-color">
     <title>Budget Tracker</title>
+    <script>
+        // Apply saved theme before first paint (avoids a flash of the wrong theme)
+        (function () {
+            try {
+                var t = localStorage.getItem('budgetTheme') === 'light' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', t);
+                var m = document.getElementById('meta-theme-color');
+                if (m) m.setAttribute('content', t === 'light' ? '#e6e9f0' : '#0f1117');
+            } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+        })();
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -18,14 +30,15 @@
             --text-dim: #8b8f9e;
             --text-muted: #5c6070;
             --accent: #6c8cff;
+            --accent-hover: #5a7aee;
             --accent-dim: rgba(108, 140, 255, 0.12);
-            --accent-glow: rgba(108, 140, 255, 0.25);
             --green: #3dd68c;
             --green-dim: rgba(61, 214, 140, 0.12);
             --red: #f06060;
             --red-dim: rgba(240, 96, 96, 0.12);
             --amber: #f0a840;
             --amber-dim: rgba(240, 168, 64, 0.12);
+            --on-accent: #ffffff;
             --radius: 10px;
             --radius-lg: 14px;
             --transition: 0.2s ease;
@@ -33,990 +46,840 @@
             --mono: 'JetBrains Mono', monospace;
         }
 
-```
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-        font-family: var(--font);
-        background: var(--bg);
-        color: var(--text);
-        min-height: 100vh;
-        -webkit-font-smoothing: antialiased;
-    }
-
-    /* Layout */
-    .app {
-        display: flex;
-        min-height: 100vh;
-    }
-
-    /* Sidebar */
-    .sidebar {
-        background: var(--surface);
-        border-right: 1px solid var(--border);
-        padding: 24px 0;
-        display: flex;
-        flex-direction: column;
-        position: sticky;
-        top: 0;
-        height: 100vh;
-        overflow-y: auto;
-        width: 220px;
-        min-width: 220px;
-    }
-
-    .main {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .logo {
-        padding: 0 20px 28px;
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: -0.3px;
-        color: var(--text);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .logo-icon {
-        width: 32px;
-        height: 32px;
-        background: linear-gradient(135deg, var(--accent), #a06cf0);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-    }
-
-    .nav-section {
-        padding: 0 12px;
-        margin-bottom: 8px;
-    }
-
-    .nav-label {
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
-        color: var(--text-muted);
-        padding: 0 8px;
-        margin-bottom: 6px;
-    }
-
-    .nav-btn {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-        padding: 9px 12px;
-        border: none;
-        background: transparent;
-        color: var(--text-dim);
-        font-family: var(--font);
-        font-size: 13.5px;
-        font-weight: 500;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: var(--transition);
-        text-align: left;
-    }
-
-    .nav-btn:hover { background: var(--surface-2); color: var(--text); }
-    .nav-btn.active { background: var(--accent-dim); color: var(--accent); }
-    .nav-btn .icon { font-size: 16px; width: 20px; text-align: center; }
-
-    .sidebar-footer {
-        margin-top: auto;
-        padding: 16px 12px;
-        border-top: 1px solid var(--border);
-    }
-
-    .month-select-wrap {
-        padding: 0 12px 16px;
-    }
-
-    .month-select-wrap label {
-        display: block;
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
-        color: var(--text-muted);
-        padding: 0 8px;
-        margin-bottom: 6px;
-    }
-
-    .month-select {
-        width: 100%;
-        padding: 8px 12px;
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        color: var(--text);
-        font-family: var(--font);
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        outline: none;
-        transition: var(--transition);
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238b8f9e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
-    }
-
-    .month-select:hover { border-color: var(--border-hover); }
-    .month-select:focus { border-color: var(--accent); }
-
-    .month-select option {
-        background: var(--surface-2);
-        color: var(--text);
-    }
-
-    .sidebar-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding: 0 12px;
-        margin-bottom: 16px;
-    }
-
-    .sidebar-action-btn {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid var(--border);
-        background: var(--surface-2);
-        color: var(--text-dim);
-        font-family: var(--font);
-        font-size: 12px;
-        font-weight: 500;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: var(--transition);
-    }
-
-    .sidebar-action-btn:hover {
-        border-color: var(--border-hover);
-        color: var(--text);
-        background: var(--surface-3);
-    }
-
-    /* Main content */
-    .main {
-        padding: 32px 40px;
-        max-width: 1100px;
-        flex: 1;
-        min-width: 0;
-    }
-
-    .page-header {
-        margin-bottom: 28px;
-    }
-
-    .page-title {
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: -0.5px;
-        color: var(--text);
-    }
-
-    .page-subtitle {
-        font-size: 13px;
-        color: var(--text-muted);
-        margin-top: 4px;
-    }
-
-    /* Panels */
-    .panel {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-
-    .panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 16px;
-    }
-
-    .panel-title {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--text);
-    }
-
-    .panel-actions {
-        display: flex;
-        gap: 8px;
-    }
-
-    /* Buttons */
-    .btn {
-        padding: 7px 14px;
-        border: 1px solid var(--border);
-        background: var(--surface-2);
-        color: var(--text-dim);
-        font-family: var(--font);
-        font-size: 12.5px;
-        font-weight: 500;
-        border-radius: 7px;
-        cursor: pointer;
-        transition: var(--transition);
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .btn:hover { border-color: var(--border-hover); color: var(--text); background: var(--surface-3); }
-
-    .btn-primary {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: #fff;
-    }
-    .btn-primary:hover { background: #5a7aee; border-color: #5a7aee; color: #fff; }
-
-    .btn-danger {
-        color: var(--red);
-        border-color: rgba(240, 96, 96, 0.25);
-    }
-    .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
-
-    .btn-success {
-        background: var(--green);
-        border-color: var(--green);
-        color: #0f1117;
-    }
-    .btn-success:hover { background: #30c47d; border-color: #30c47d; color: #0f1117; }
-
-    .btn-sm { padding: 5px 10px; font-size: 11.5px; }
-
-    /* Tables */
-    .table-wrap {
-        overflow-x: auto;
-        margin: 0 -20px;
-        padding: 0 20px;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    th {
-        padding: 8px 14px;
-        text-align: left;
-        font-size: 10.5px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: var(--text-muted);
-        border-bottom: 1px solid var(--border);
-    }
-
-    td {
-        padding: 10px 14px;
-        font-size: 13.5px;
-        color: var(--text);
-        border-bottom: 1px solid var(--border);
-    }
-
-    tbody tr {
-        cursor: pointer;
-        transition: var(--transition);
-    }
-
-    tbody tr:hover { background: var(--surface-2); }
-
-    tbody tr.selected {
-        background: var(--accent-dim);
-    }
-
-    tbody tr:last-child td { border-bottom: none; }
-
-    .amount { font-family: var(--mono); font-size: 13px; font-weight: 500; }
-    .amount.positive { color: var(--green); }
-    .amount.negative { color: var(--red); }
-
-    .badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 8px;
-        border-radius: 5px;
-        font-size: 11px;
-        font-weight: 600;
-    }
-
-    .badge-paid {
-        background: var(--green-dim);
-        color: var(--green);
-    }
-
-    .badge-unpaid {
-        background: var(--red-dim);
-        color: var(--red);
-    }
-
-    /* Stat cards */
-    .stat-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 14px;
-        margin-bottom: 20px;
-    }
-
-    .stat-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 18px 20px;
-    }
-
-    .stat-label {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: var(--text-muted);
-        margin-bottom: 6px;
-    }
-
-    .stat-value {
-        font-family: var(--mono);
-        font-size: 22px;
-        font-weight: 600;
-        letter-spacing: -0.5px;
-    }
-
-    .stat-value.green { color: var(--green); }
-    .stat-value.red { color: var(--red); }
-    .stat-value.amber { color: var(--amber); }
-    .stat-value.blue { color: var(--accent); }
-
-    .stat-sub {
-        font-size: 11.5px;
-        color: var(--text-muted);
-        margin-top: 4px;
-    }
-
-    /* Sub-tabs for expense categories */
-    .sub-tabs {
-        display: flex;
-        gap: 4px;
-        margin-bottom: 16px;
-        overflow-x: auto;
-        padding-bottom: 2px;
-    }
-
-    .sub-tab {
-        padding: 6px 14px;
-        border: none;
-        background: transparent;
-        color: var(--text-muted);
-        font-family: var(--font);
-        font-size: 12.5px;
-        font-weight: 500;
-        border-radius: 7px;
-        cursor: pointer;
-        transition: var(--transition);
-        white-space: nowrap;
-    }
-
-    .sub-tab:hover { background: var(--surface-2); color: var(--text-dim); }
-    .sub-tab.active { background: var(--accent-dim); color: var(--accent); }
-
-    /* Form elements */
-    .form-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 14px;
-    }
-
-    .form-label {
-        font-size: 12.5px;
-        font-weight: 500;
-        color: var(--text-dim);
-        min-width: 140px;
-    }
-
-    .form-input {
-        padding: 8px 12px;
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        border-radius: 7px;
-        color: var(--text);
-        font-family: var(--font);
-        font-size: 13px;
-        outline: none;
-        transition: var(--transition);
-        width: 200px;
-    }
-
-    .form-input:focus { border-color: var(--accent); }
-
-    /* Modal */
-    .modal-overlay {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(6px);
-        align-items: center;
-        justify-content: center;
-    }
-
-    .modal-overlay.show {
-        display: flex;
-    }
-
-    .modal-box {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 28px;
-        width: 90%;
-        max-width: 420px;
-        animation: modalIn 0.2s ease;
-    }
-
-    @keyframes modalIn {
-        from { opacity: 0; transform: translateY(-16px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .modal-title {
-        font-size: 17px;
-        font-weight: 600;
-        margin-bottom: 20px;
-        color: var(--text);
-    }
-
-    .modal-form .form-group {
-        margin-bottom: 14px;
-    }
-
-    .modal-form .form-group label {
-        display: block;
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--text-dim);
-        margin-bottom: 5px;
-    }
-
-    .modal-form .form-group input,
-    .modal-form .form-group select {
-        width: 100%;
-        padding: 9px 12px;
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        border-radius: 7px;
-        color: var(--text);
-        font-family: var(--font);
-        font-size: 13px;
-        outline: none;
-        transition: var(--transition);
-    }
-
-    .modal-form .form-group input:focus,
-    .modal-form .form-group select:focus { border-color: var(--accent); }
-
-    .modal-form .form-group input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        accent-color: var(--accent);
-        cursor: pointer;
-    }
-
-    .modal-form .form-group select option {
-        background: var(--surface-2);
-        color: var(--text);
-    }
-
-    .modal-footer {
-        display: flex;
-        gap: 8px;
-        justify-content: flex-end;
-        margin-top: 20px;
-    }
-
-    /* Summary section */
-    .summary-block {
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 16px 20px;
-        margin-bottom: 14px;
-    }
-
-    .summary-block-title {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: var(--text-muted);
-        margin-bottom: 10px;
-    }
-
-    .summary-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 5px 0;
-    }
-
-    .summary-row-label {
-        font-size: 13px;
-        color: var(--text-dim);
-    }
-
-    .summary-row-value {
-        font-family: var(--mono);
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--text);
-    }
-
-    .summary-row.highlight {
-        padding: 8px 0;
-        border-top: 1px solid var(--border);
-        margin-top: 4px;
-    }
-
-    .summary-row.highlight .summary-row-label {
-        font-weight: 600;
-        color: var(--text);
-    }
-
-    .summary-row.highlight .summary-row-value {
-        font-size: 15px;
-        font-weight: 600;
-    }
-
-    .expense-item-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 3px 0 3px 12px;
-        font-size: 12.5px;
-    }
-
-    .expense-item-row .name {
-        color: var(--text-dim);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .expense-item-row .name .tick { font-size: 10px; }
-    .expense-item-row .name .tick.paid { color: var(--green); }
-    .expense-item-row .name .tick.unpaid { color: var(--text-muted); }
-
-    .expense-item-row .val {
-        font-family: var(--mono);
-        font-size: 12px;
-        color: var(--text-dim);
-    }
-
-    /* Balance checker */
-    .balance-checker-card {
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 16px 20px;
-    }
-
-    .balance-result {
-        margin-top: 12px;
-        padding: 10px 14px;
-        border-radius: 7px;
-        font-family: var(--mono);
-        font-size: 13px;
-        font-weight: 600;
-        text-align: center;
-    }
-
-    .balance-result.success { background: var(--green-dim); color: var(--green); }
-    .balance-result.warning { background: var(--amber-dim); color: var(--amber); }
-    .balance-result.error { background: var(--red-dim); color: var(--red); }
-
-    /* Accounts */
-    .account-card {
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 20px;
-        margin-bottom: 14px;
-    }
-
-    .account-card-title {
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: var(--text-muted);
-        margin-bottom: 8px;
-    }
-
-    .account-card-value {
-        font-family: var(--mono);
-        font-size: 26px;
-        font-weight: 600;
-        margin-bottom: 14px;
-    }
-
-    /* Fuel progress */
-    .fuel-bar-container {
-        margin-top: 12px;
-    }
-
-    .fuel-bar-label {
-        display: flex;
-        justify-content: space-between;
-        font-size: 11.5px;
-        color: var(--text-muted);
-        margin-bottom: 6px;
-    }
-
-    .fuel-bar {
-        height: 8px;
-        background: var(--surface-3);
-        border-radius: 4px;
-        overflow: hidden;
-    }
-
-    .fuel-bar-fill {
-        height: 100%;
-        border-radius: 4px;
-        transition: width 0.4s ease;
-        background: var(--green);
-    }
-
-    .fuel-bar-fill.warning { background: var(--amber); }
-    .fuel-bar-fill.danger { background: var(--red); }
-
-    /* Tab panes */
-    .tab-pane { display: none; }
-    .tab-pane.active { display: block; animation: fadeIn 0.15s ease; }
-
-    .expense-pane { display: none; }
-    .expense-pane.active { display: block; }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    /* Fuel highlight card */
-    .fuel-return-card {
-        border: 1px solid rgba(240, 168, 64, 0.3);
-        background: var(--amber-dim);
-        border-radius: var(--radius);
-        padding: 14px 18px;
-        margin-top: 14px;
-    }
-
-    .fuel-return-card .label {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: var(--amber);
-        margin-bottom: 4px;
-    }
-
-    .fuel-return-card .value {
-        font-family: var(--mono);
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--amber);
-    }
-
-    .fuel-return-card .desc {
-        font-size: 11.5px;
-        color: rgba(240, 168, 64, 0.7);
-        margin-top: 2px;
-    }
-
-    /* True balance card */
-    .true-balance-card {
-        border: 1px solid rgba(108, 140, 255, 0.3);
-        background: linear-gradient(135deg, rgba(108, 140, 255, 0.08), rgba(160, 108, 240, 0.06));
-        border-radius: var(--radius-lg);
-        padding: 20px 24px;
-        margin-top: 14px;
-    }
-
-    .true-balance-card .label {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: var(--accent);
-        margin-bottom: 4px;
-    }
-
-    .true-balance-card .value {
-        font-family: var(--mono);
-        font-size: 26px;
-        font-weight: 700;
-        letter-spacing: -0.5px;
-    }
-
-    .true-balance-card .desc {
-        font-size: 12px;
-        color: var(--text-muted);
-        margin-top: 4px;
-    }
-
-    /* Empty state */
-    .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--text-muted);
-        font-size: 13px;
-    }
-
-    /* Mobile header - hidden on desktop */
-    .mobile-header {
-        display: none;
-        margin-bottom: 16px;
-    }
-
-    /* ─── MOBILE ─── */
-    @media (max-width: 768px) {
-        /* Kill the flex row layout, just stack */
-        .app {
-            display: block;
+        /* Light theme: soft grey-blue, deliberately not pure white */
+        :root[data-theme="light"] {
+            --bg: #e6e9f0;
+            --surface: #f3f5f9;
+            --surface-2: #e9edf4;
+            --surface-3: #dde2ec;
+            --border: #cdd3e0;
+            --border-hover: #b3bccd;
+            --text: #1c2130;
+            --text-dim: #4a5266;
+            --text-muted: #667086;
+            --accent: #4361e0;
+            --accent-hover: #3650c8;
+            --accent-dim: rgba(67, 97, 224, 0.12);
+            --green: #178f59;
+            --green-dim: rgba(23, 143, 89, 0.13);
+            --red: #cf3f3f;
+            --red-dim: rgba(207, 63, 63, 0.11);
+            --amber: #a86a0a;
+            --amber-dim: rgba(168, 106, 10, 0.13);
         }
 
-        /* Bottom nav bar */
-        .sidebar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            top: auto !important;
-            width: 100% !important;
-            min-width: 0 !important;
-            height: auto !important;
-            max-height: 70px;
-            flex-direction: row;
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding: 4px 4px 8px;
-            z-index: 100;
-            border-right: none;
-            border-top: 1px solid var(--border);
-            background: var(--surface);
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        [hidden] { display: none !important; }
 
-        /* Hide everything except the nav buttons */
-        .sidebar .logo,
-        .sidebar .nav-label,
-        .sidebar .sidebar-footer,
-        .sidebar .month-select-wrap,
-        .sidebar .sidebar-actions {
-            display: none !important;
-        }
-
-        .sidebar .nav-section {
-            display: flex !important;
-            flex-direction: row !important;
-            gap: 0;
-            padding: 0;
-            margin: 0;
-            width: 100%;
-            justify-content: space-around;
-            align-items: stretch;
-        }
-
-        .sidebar .nav-btn {
-            flex-direction: column;
-            font-size: 10px;
-            padding: 6px 4px;
-            gap: 2px;
-            white-space: nowrap;
-            min-width: 0;
-            flex: 1;
-            text-align: center;
-            justify-content: center;
-            align-items: center;
-            border-radius: 6px;
-        }
-
-        .sidebar .nav-btn .icon {
-            font-size: 20px;
-            width: auto;
-            line-height: 1;
-        }
-
-        /* Main area */
-        .main {
-            padding: 16px 14px 100px !important;
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            max-width: 100% !important;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Show mobile header */
-        .mobile-header {
+        /* Layout */
+        .app { display: flex; min-height: 100vh; }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 24px 0;
             display: flex;
-            gap: 6px;
-            align-items: center;
-            flex-wrap: wrap;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            width: 220px;
+            min-width: 220px;
         }
 
-        .mobile-header select { flex: 1; min-width: 0; }
+        .logo {
+            padding: 0 20px 28px;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-        /* Cards & grids */
-        .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-        .stat-card { padding: 14px 16px; }
-        .stat-value { font-size: 17px; }
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent), #a06cf0);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #fff;
+        }
 
-        .form-row { flex-direction: column; align-items: stretch; gap: 8px; }
-        .form-label { min-width: auto; }
-        .form-input { width: 100%; }
+        .nav-section { padding: 0 12px; margin-bottom: 8px; }
 
-        .panel { padding: 14px; }
-        .panel-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-        .panel-actions { flex-wrap: wrap; width: 100%; }
-        .panel-actions .btn { flex: 1; text-align: center; justify-content: center; min-width: 0; }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            padding: 0 8px;
+            margin-bottom: 6px;
+        }
 
-        .sub-tabs { gap: 2px; }
-        .sub-tab { padding: 6px 10px; font-size: 11.5px; }
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 9px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-family: var(--font);
+            font-size: 13.5px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+        }
 
-        .true-balance-card { padding: 16px 18px; }
-        .true-balance-card .value { font-size: 22px; }
+        .nav-btn:hover { background: var(--surface-2); color: var(--text); }
+        .nav-btn.active { background: var(--accent-dim); color: var(--accent); }
+        .nav-btn .icon { font-size: 16px; width: 20px; text-align: center; }
 
-        .page-title { font-size: 18px; }
-        .table-wrap { margin: 0 -14px; padding: 0 14px; }
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 12px;
+            border-top: 1px solid var(--border);
+        }
 
-        .modal-box { width: 95%; padding: 22px; margin: 12px; }
-    }
+        .month-select-wrap { padding: 0 12px 16px; }
 
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+        .month-select-wrap label {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            padding: 0 8px;
+            margin-bottom: 6px;
+        }
 
-    /* ─── GitHub Sync ─── */
-    .sync-status {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        padding: 7px 12px;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--text-muted);
-        margin-bottom: 4px;
-        min-height: 32px;
-    }
-    .sync-dot {
-        width: 7px; height: 7px;
-        border-radius: 50%;
-        background: var(--text-muted);
-        flex-shrink: 0;
-        transition: background 0.3s;
-    }
-    .sync-dot.synced { background: var(--green); }
-    .sync-dot.syncing { background: var(--amber); animation: pulse 1s infinite; }
-    .sync-dot.error { background: var(--red); }
-    .sync-dot.unconfigured { background: var(--text-muted); }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .month-select {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: var(--transition);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238b8f9e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
 
-    .github-setup-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.75);
-        backdrop-filter: blur(8px);
-        z-index: 2000;
-        align-items: center;
-        justify-content: center;
-    }
-    .github-setup-overlay.show { display: flex; }
-    .github-setup-box {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 32px;
-        width: 90%;
-        max-width: 460px;
-        animation: modalIn 0.2s ease;
-    }
-    .github-setup-box h2 {
-        font-size: 18px;
-        font-weight: 700;
-        margin-bottom: 6px;
-        color: var(--text);
-    }
-    .github-setup-box p {
-        font-size: 13px;
-        color: var(--text-muted);
-        margin-bottom: 22px;
-        line-height: 1.6;
-    }
-    .github-setup-box .form-group { margin-bottom: 16px; }
-    .github-setup-box .form-group label {
-        display: block;
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-dim);
-        margin-bottom: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-    }
-    .github-setup-box .form-group input {
-        width: 100%;
-        padding: 10px 12px;
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        color: var(--text);
-        font-family: var(--mono);
-        font-size: 13px;
-        outline: none;
-        transition: var(--transition);
-    }
-    .github-setup-box .form-group input:focus { border-color: var(--accent); }
-    .github-setup-box .form-group .hint {
-        font-size: 11.5px;
-        color: var(--text-muted);
-        margin-top: 5px;
-        line-height: 1.5;
-    }
-    .github-setup-footer {
-        display: flex;
-        gap: 8px;
-        justify-content: flex-end;
-        margin-top: 24px;
-    }
-    .conflict-box {
-        background: var(--surface-2);
-        border: 1px solid rgba(240,168,64,0.4);
-        border-radius: var(--radius);
-        padding: 14px 16px;
-        margin-bottom: 16px;
-        font-size: 13px;
-        color: var(--amber);
-        line-height: 1.6;
-    }
-</style>
-```
+        .month-select:hover { border-color: var(--border-hover); }
+        .month-select:focus { border-color: var(--accent); }
+        .month-select option { background: var(--surface-2); color: var(--text); }
 
+        .sidebar-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 0 12px;
+            margin-bottom: 16px;
+        }
+
+        .sidebar-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-dim);
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .sidebar-action-btn:hover {
+            border-color: var(--border-hover);
+            color: var(--text);
+            background: var(--surface-3);
+        }
+
+        .sidebar-footer .sidebar-action-btn { margin-top: 4px; }
+
+        /* Main content */
+        .main {
+            padding: 32px 40px;
+            max-width: 1100px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .page-header { margin-bottom: 28px; }
+        .page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+        .page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+        /* Panels */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .panel-title { font-size: 14px; font-weight: 600; color: var(--text); }
+        .panel-actions { display: flex; gap: 8px; }
+
+        /* Buttons */
+        .btn {
+            padding: 7px 14px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-dim);
+            font-family: var(--font);
+            font-size: 12.5px;
+            font-weight: 500;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover { border-color: var(--border-hover); color: var(--text); background: var(--surface-3); }
+
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--on-accent); }
+
+        .btn-danger { color: var(--red); border-color: rgba(240, 96, 96, 0.3); }
+        .btn-danger:hover { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+
+        .btn-sm { padding: 5px 10px; font-size: 11.5px; }
+
+        /* Tables */
+        .table-wrap { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+        table { width: 100%; border-collapse: collapse; }
+
+        th {
+            padding: 8px 14px;
+            text-align: left;
+            font-size: 10.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 10px 14px;
+            font-size: 13.5px;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr { cursor: pointer; transition: var(--transition); }
+        tbody tr:hover { background: var(--surface-2); }
+        tbody tr.selected { background: var(--accent-dim); }
+        tbody tr:last-child td { border-bottom: none; }
+
+        .amount { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+        .amount.positive { color: var(--green); }
+        .amount.negative { color: var(--red); }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-paid { background: var(--green-dim); color: var(--green); }
+        .badge-unpaid { background: var(--red-dim); color: var(--red); }
+
+        /* Stat cards */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+        .stat-value.green { color: var(--green); }
+        .stat-value.red { color: var(--red); }
+        .stat-value.amber { color: var(--amber); }
+        .stat-value.blue { color: var(--accent); }
+        .stat-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+
+        /* Sub-tabs for expense categories */
+        .sub-tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 2px; }
+
+        .sub-tab {
+            padding: 6px 14px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: var(--font);
+            font-size: 12.5px;
+            font-weight: 500;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .sub-tab:hover { background: var(--surface-2); color: var(--text-dim); }
+        .sub-tab.active { background: var(--accent-dim); color: var(--accent); }
+
+        /* Form elements */
+        .form-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .form-label { font-size: 12.5px; font-weight: 500; color: var(--text-dim); min-width: 140px; }
+
+        .form-input {
+            padding: 8px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 13px;
+            outline: none;
+            transition: var(--transition);
+            width: 200px;
+        }
+
+        .form-input:focus { border-color: var(--accent); }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show { display: flex; }
+
+        .modal-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            width: 90%;
+            max-width: 420px;
+            animation: modalIn 0.2s ease;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(-16px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 20px; color: var(--text); }
+
+        .modal-form .form-group { margin-bottom: 14px; }
+
+        .modal-form .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+        }
+
+        .modal-form .form-group input,
+        .modal-form .form-group select {
+            width: 100%;
+            padding: 9px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 13px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .modal-form .form-group input:focus,
+        .modal-form .form-group select:focus { border-color: var(--accent); }
+
+        .modal-form .form-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .modal-form .form-group select option { background: var(--surface-2); color: var(--text); }
+
+        .date-row { display: flex; gap: 8px; position: relative; }
+        .date-row input[type="text"] { flex: 1; min-width: 0; }
+        .date-row .btn { padding: 7px 12px; font-size: 14px; }
+
+        /* Hidden native picker, only used to pop the calendar */
+        .modal-form .form-group input.native-date {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            padding: 0;
+            border: 0;
+            pointer-events: none;
+        }
+
+        .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+        /* Summary section */
+        .summary-block {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 14px;
+        }
+
+        .summary-block-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
+        .summary-row-label { font-size: 13px; color: var(--text-dim); }
+        .summary-row-value { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--text); }
+
+        .summary-row.highlight { padding: 8px 0; border-top: 1px solid var(--border); margin-top: 4px; }
+        .summary-row.highlight .summary-row-label { font-weight: 600; color: var(--text); }
+        .summary-row.highlight .summary-row-value { font-size: 15px; font-weight: 600; }
+
+        .expense-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3px 0 3px 12px;
+            font-size: 12.5px;
+        }
+
+        .expense-item-row .name { color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+        .expense-item-row .name .tick { font-size: 10px; }
+        .expense-item-row .name .tick.paid { color: var(--green); }
+        .expense-item-row .name .tick.unpaid { color: var(--text-muted); }
+        .expense-item-row .val { font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+
+        /* Balance checker */
+        .balance-checker-card {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+        }
+
+        .balance-result {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 7px;
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .balance-result:empty { display: none; }
+        .balance-result.success { background: var(--green-dim); color: var(--green); }
+        .balance-result.warning { background: var(--amber-dim); color: var(--amber); }
+        .balance-result.error { background: var(--red-dim); color: var(--red); }
+
+        /* Accounts */
+        .account-card {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 14px;
+        }
+
+        .account-card-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .account-card-value { font-family: var(--mono); font-size: 26px; font-weight: 600; margin-bottom: 14px; }
+
+        /* Fuel progress */
+        .fuel-bar-container { margin-top: 12px; }
+        .fuel-bar-label { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px; }
+        .fuel-bar { height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+        .fuel-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; background: var(--green); }
+        .fuel-bar-fill.warning { background: var(--amber); }
+        .fuel-bar-fill.danger { background: var(--red); }
+
+        /* Tab panes */
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; animation: fadeIn 0.15s ease; }
+        .expense-pane { display: none; }
+        .expense-pane.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* True balance card */
+        .true-balance-card {
+            border: 1px solid rgba(108, 140, 255, 0.3);
+            background: linear-gradient(135deg, rgba(108, 140, 255, 0.08), rgba(160, 108, 240, 0.06));
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            margin-top: 14px;
+        }
+
+        .true-balance-card .label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .true-balance-card .value { font-family: var(--mono); font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+        .true-balance-card .desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; }
+
+        /* Mobile header - hidden on desktop */
+        .mobile-header { display: none; margin-bottom: 16px; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            transform: translate(-50%, 20px);
+            max-width: min(92vw, 460px);
+            background: var(--surface-3);
+            color: var(--text);
+            border: 1px solid var(--border-hover);
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 13px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 3000;
+        }
+
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+        .toast.error { border-color: var(--red); color: var(--red); }
+
+        /* ─── MOBILE ─── */
+        @media (max-width: 768px) {
+            .app { display: block; }
+
+            .sidebar {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                top: auto !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                height: auto !important;
+                max-height: 70px;
+                flex-direction: row;
+                overflow-x: auto;
+                overflow-y: hidden;
+                padding: 4px 4px 8px;
+                z-index: 100;
+                border-right: none;
+                border-top: 1px solid var(--border);
+                background: var(--surface);
+            }
+
+            .sidebar .logo,
+            .sidebar .nav-label,
+            .sidebar .sidebar-footer,
+            .sidebar .month-select-wrap,
+            .sidebar .sidebar-actions { display: none !important; }
+
+            .sidebar .nav-section {
+                display: flex !important;
+                flex-direction: row !important;
+                gap: 0;
+                padding: 0;
+                margin: 0;
+                width: 100%;
+                justify-content: space-around;
+                align-items: stretch;
+            }
+
+            .sidebar .nav-btn {
+                flex-direction: column;
+                font-size: 10px;
+                padding: 6px 4px;
+                gap: 2px;
+                white-space: nowrap;
+                min-width: 0;
+                flex: 1;
+                text-align: center;
+                justify-content: center;
+                align-items: center;
+                border-radius: 6px;
+            }
+
+            .sidebar .nav-btn .icon { font-size: 20px; width: auto; line-height: 1; }
+
+            .main { padding: 16px 14px 100px !important; min-height: 100vh; max-width: 100% !important; }
+
+            .mobile-header { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+            .mobile-header select { flex: 1 1 100%; min-width: 0; }
+            .mobile-header .btn { flex: 1; justify-content: center; }
+
+            .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .stat-card { padding: 14px 16px; }
+            .stat-value { font-size: 17px; }
+
+            .form-row { flex-direction: column; align-items: stretch; gap: 8px; }
+            .form-label { min-width: auto; }
+            .form-input { width: 100%; }
+
+            .panel { padding: 14px; }
+            .panel-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .panel-actions { flex-wrap: wrap; width: 100%; }
+            .panel-actions .btn { flex: 1; text-align: center; justify-content: center; min-width: 0; }
+
+            .sub-tabs { gap: 2px; }
+            .sub-tab { padding: 6px 10px; font-size: 11.5px; }
+
+            .true-balance-card { padding: 16px 18px; }
+            .true-balance-card .value { font-size: 22px; }
+
+            .page-title { font-size: 18px; }
+            .table-wrap { margin: 0 -14px; padding: 0 14px; }
+
+            .modal-box { width: 95%; padding: 22px; margin: 12px; }
+            .toast { bottom: 90px; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+        /* ─── Sync status ─── */
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            min-height: 32px;
+        }
+
+        .sync-status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .sync-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+
+        .sync-dot.synced { background: var(--green); }
+        .sync-dot.syncing { background: var(--amber); animation: pulse 1s infinite; }
+        .sync-dot.error { background: var(--red); }
+        .sync-dot.unconfigured { background: var(--text-muted); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* ─── Settings ─── */
+        .settings-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            align-items: flex-start;
+            justify-content: center;
+            overflow-y: auto;
+            padding: 24px 12px;
+        }
+
+        .settings-overlay.show { display: flex; }
+
+        .settings-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 26px;
+            width: 100%;
+            max-width: 480px;
+            margin: auto 0;
+            animation: modalIn 0.2s ease;
+        }
+
+        .settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+        .settings-head h2 { font-size: 18px; font-weight: 700; color: var(--text); }
+
+        .settings-section { padding: 16px 0; border-top: 1px solid var(--border); }
+
+        .settings-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .settings-note { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
+
+        .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+
+        .seg button {
+            padding: 7px 18px;
+            border: none;
+            background: var(--surface-2);
+            color: var(--text-dim);
+            font-family: var(--font);
+            font-size: 12.5px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .seg button + button { border-left: 1px solid var(--border); }
+        .seg button.active { background: var(--accent); color: var(--on-accent); }
+
+        .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
+        .switch-row .txt { font-size: 13.5px; font-weight: 500; color: var(--text); }
+        .switch-row .txt small { display: block; font-size: 12px; font-weight: 400; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+
+        input.switch {
+            appearance: none;
+            -webkit-appearance: none;
+            flex-shrink: 0;
+            width: 42px;
+            height: 24px;
+            border-radius: 12px;
+            background: var(--surface-3);
+            border: 1px solid var(--border-hover);
+            position: relative;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        input.switch::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: var(--text-dim);
+            transition: var(--transition);
+        }
+
+        input.switch:checked { background: var(--accent); border-color: var(--accent); }
+        input.switch:checked::after { left: 20px; background: #fff; }
+
+        .settings-box .form-group { margin-bottom: 14px; }
+
+        .settings-box .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+
+        .settings-box .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 13px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .settings-box .form-group input:focus { border-color: var(--accent); }
+        .settings-box .hint { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; line-height: 1.5; }
+        .settings-box code { color: var(--accent); font-family: var(--mono); font-size: 11.5px; }
+        .settings-box a { color: var(--accent); }
+        .settings-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+        .settings-sync-status { font-size: 12px; color: var(--text-muted); margin-top: 12px; min-height: 16px; word-break: break-word; }
+        .settings-sync-status.error { color: var(--red); }
+    </style>
 </head>
 <body>
     <div class="app">
@@ -1027,413 +890,716 @@
                 Budget Tracker
             </div>
 
-```
-        <div class="month-select-wrap">
-            <label>Current Month</label>
-            <select class="month-select" id="month-select"></select>
-        </div>
+            <div class="month-select-wrap">
+                <label>Current Month</label>
+                <select class="month-select" id="month-select"></select>
+            </div>
 
-        <div class="sidebar-actions">
-            <button class="sidebar-action-btn" id="add-month-btn">＋ New Month</button>
-            <button class="sidebar-action-btn" id="next-month-btn">→ Next Month</button>
-        </div>
+            <div class="sidebar-actions">
+                <button class="sidebar-action-btn" id="add-month-btn">＋ New Month</button>
+                <button class="sidebar-action-btn" id="next-month-btn">→ Next Month</button>
+            </div>
 
-        <div class="nav-section">
-            <div class="nav-label">Sections</div>
-            <button class="nav-btn active" data-tab="summary"><span class="icon">◎</span> Summary</button>
-            <button class="nav-btn" data-tab="income"><span class="icon">↓</span> Income</button>
-            <button class="nav-btn" data-tab="fuel"><span class="icon">⛽</span> Fuel</button>
-            <button class="nav-btn" data-tab="expenses"><span class="icon">↑</span> Expenses</button>
-            <button class="nav-btn" data-tab="accounts"><span class="icon">◈</span> Accounts</button>
-        </div>
+            <div class="nav-section">
+                <div class="nav-label">Sections</div>
+                <button class="nav-btn active" data-tab="summary"><span class="icon">◎</span> Summary</button>
+                <button class="nav-btn" data-tab="income"><span class="icon">↓</span> Income</button>
+                <button class="nav-btn" data-tab="expenses"><span class="icon">↑</span> Expenses</button>
+                <button class="nav-btn" data-tab="fuel" data-fuel-only hidden><span class="icon">⛽</span> Fuel</button>
+                <button class="nav-btn" data-tab="accounts"><span class="icon">◈</span> Accounts</button>
+            </div>
 
-        <div class="sidebar-footer">
-            <div class="sync-status" id="sync-status">
-                <div class="sync-dot unconfigured" id="sync-dot"></div>
-                <span id="sync-label">Not configured</span>
+            <div class="sidebar-footer">
+                <div class="sync-status" id="sync-status">
+                    <div class="sync-dot unconfigured" id="sync-dot"></div>
+                    <span id="sync-label">Not configured</span>
+                </div>
+                <button class="sidebar-action-btn" id="sync-now-btn">☁ Sync Now</button>
+                <button class="sidebar-action-btn" id="settings-btn">⚙ Settings</button>
+                <button class="sidebar-action-btn" id="theme-btn">🌓 Light mode</button>
+                <button class="sidebar-action-btn" id="import-data-btn">📥 Import</button>
+                <button class="sidebar-action-btn" id="export-data-btn">📤 Export</button>
+                <input type="file" id="file-input" accept=".json" style="display:none">
             </div>
-            <button class="sidebar-action-btn" id="sync-now-btn" style="margin-bottom:4px">☁ Sync Now</button>
-            <button class="sidebar-action-btn" id="github-settings-btn" style="margin-bottom:8px">⚙ GitHub Settings</button>
-            <button class="sidebar-action-btn" id="import-data-btn">📥 Import</button>
-            <button class="sidebar-action-btn" id="export-data-btn" style="margin-top:4px">📤 Export</button>
-            <input type="file" id="file-input" accept=".json" style="display:none">
-        </div>
-    </aside>
+        </aside>
 
-    <!-- GitHub Setup Modal -->
-    <div class="github-setup-overlay" id="github-setup-overlay">
-        <div class="github-setup-box">
-            <h2>☁ GitHub Sync Setup</h2>
-            <p>Your app stays in its <strong style="color:var(--text-dim)">public</strong> repo (so GitHub Pages keeps working). Your data is saved to a separate <strong style="color:var(--text-dim)">private</strong> repo that only you can access.</p>
-            <div class="form-group">
-                <label>GitHub Username</label>
-                <input type="text" id="gh-username" placeholder="e.g. johndoe">
+        <!-- Main Content -->
+        <main class="main">
+            <div class="mobile-header">
+                <select class="month-select" id="month-select-mobile"></select>
+                <button class="btn btn-sm" id="add-month-btn-mobile" title="New month">＋</button>
+                <button class="btn btn-sm" id="next-month-btn-mobile" title="Next month">→</button>
+                <button class="btn btn-sm" id="import-data-btn-mobile" title="Import">📥</button>
+                <button class="btn btn-sm" id="export-data-btn-mobile" title="Export">📤</button>
+                <button class="btn btn-sm" id="sync-now-btn-mobile" title="Sync now">☁ <span id="sync-dot-mobile" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--text-muted);vertical-align:middle"></span></button>
+                <button class="btn btn-sm" id="theme-btn-mobile" title="Switch light/dark">🌓</button>
+                <button class="btn btn-sm" id="settings-btn-mobile" title="Settings">⚙</button>
             </div>
-            <div class="form-group">
-                <label>Data Repository <span style="color:var(--accent);font-size:10px;text-transform:none;letter-spacing:0">private repo</span></label>
-                <input type="text" id="gh-repo" placeholder="e.g. budget-data">
-                <div class="hint">Create a new <strong style="color:var(--text-dim)">private</strong> repo just for data (e.g. <code style="color:var(--accent)">budget-data</code>). Keep your app repo public so GitHub Pages works.</div>
+
+            <!-- SUMMARY TAB -->
+            <div id="summary-tab" class="tab-pane active">
+                <div class="page-header">
+                    <div class="page-title">Summary</div>
+                    <div class="page-subtitle" id="summary-month-label"></div>
+                </div>
+
+                <div class="stat-grid" id="summary-stat-grid"></div>
+
+                <div class="true-balance-card" id="true-balance-card"></div>
+
+                <div id="summary-details" style="margin-top:20px"></div>
+
+                <div class="balance-checker-card" style="margin-top:20px">
+                    <div class="summary-block-title">Balance Checker</div>
+                    <div class="form-row">
+                        <span class="form-label">Actual Account Balance</span>
+                        <input type="number" class="form-input" id="actual-balance" step="0.01" placeholder="0.00">
+                        <button class="btn" id="check-balance-btn">Check</button>
+                    </div>
+                    <div id="balance-check-result"></div>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Data Filename</label>
-                <input type="text" id="gh-filename" placeholder="e.g. data_john.json">
-                <div class="hint">Use a unique name per person — e.g. <code style="color:var(--accent)">data_john.json</code> and <code style="color:var(--accent)">data_sarah.json</code></div>
+
+            <!-- INCOME TAB -->
+            <div id="income-tab" class="tab-pane">
+                <div class="page-header">
+                    <div class="page-title">Income</div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">Income Sources</div>
+                        <div class="panel-actions">
+                            <button class="btn btn-primary btn-sm" id="add-income-btn">＋ Add</button>
+                            <button class="btn btn-sm" id="edit-income-btn">Edit</button>
+                            <button class="btn btn-danger btn-sm" id="delete-income-btn">Delete</button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Source</th><th style="text-align:right">Amount</th></tr></thead>
+                            <tbody id="income-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Personal Access Token</label>
-                <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx">
-                <div class="hint">Needs <strong style="color:var(--text-dim)">repo</strong> scope to read/write the private data repo. Stored only in this browser. <a href="https://github.com/settings/tokens/new" target="_blank" style="color:var(--accent)">Create one here →</a></div>
+
+            <!-- EXPENSES TAB -->
+            <div id="expenses-tab" class="tab-pane">
+                <div class="page-header">
+                    <div class="page-title">Expenses</div>
+                </div>
+
+                <div class="sub-tabs" id="expense-sub-tabs">
+                    <button class="sub-tab active" data-category="fixed">Fixed</button>
+                    <button class="sub-tab" data-category="flexible">Flexible</button>
+                    <button class="sub-tab" data-category="subscriptions">Subscriptions</button>
+                    <button class="sub-tab" data-category="international_bank">Intl Bank</button>
+                    <button class="sub-tab" data-category="ad_hoc">Ad Hoc</button>
+                </div>
+
+                <div id="expense-panes">
+                    <div id="fixed-expense" class="expense-pane active"></div>
+                    <div id="flexible-expense" class="expense-pane"></div>
+                    <div id="subscriptions-expense" class="expense-pane"></div>
+                    <div id="international_bank-expense" class="expense-pane"></div>
+                    <div id="ad_hoc-expense" class="expense-pane"></div>
+                </div>
             </div>
-            <div class="github-setup-footer">
-                <button class="btn" id="gh-cancel-btn">Cancel</button>
-                <button class="btn btn-danger btn-sm" id="gh-clear-btn">Clear Config</button>
-                <button class="btn btn-primary" id="gh-save-btn">Save & Sync</button>
+
+            <!-- FUEL TAB (optional) -->
+            <div id="fuel-tab" class="tab-pane" data-fuel-only hidden>
+                <div class="page-header">
+                    <div class="page-title">Fuel Advance</div>
+                </div>
+
+                <div class="stat-grid" id="fuel-stat-grid"></div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">Fuel Advance Amount</div>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">Advance</span>
+                        <input type="number" class="form-input" id="fuel-advance" step="0.01" min="0">
+                        <button class="btn" id="update-fuel-advance-btn">Update</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">Fuel Purchases</div>
+                        <div class="panel-actions">
+                            <button class="btn btn-primary btn-sm" id="add-fuel-btn">＋ Add</button>
+                            <button class="btn btn-sm" id="edit-fuel-btn">Edit</button>
+                            <button class="btn btn-danger btn-sm" id="delete-fuel-btn">Delete</button>
+                            <button class="btn btn-sm" id="toggle-fuel-paid-btn">Toggle Paid</button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Description</th><th style="text-align:right">Amount</th><th>Date</th><th>Status</th></tr></thead>
+                            <tbody id="fuel-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div id="fuel-bar-section"></div>
+                </div>
+            </div>
+
+            <!-- ACCOUNTS TAB -->
+            <div id="accounts-tab" class="tab-pane">
+                <div class="page-header">
+                    <div class="page-title">Accounts</div>
+                </div>
+                <div id="accounts-content"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add / edit dialog -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-box">
+            <div class="modal-title" id="modal-title">Dialog</div>
+            <div class="modal-form" id="modal-body"></div>
+            <div class="modal-footer">
+                <button class="btn" id="modal-cancel-btn">Cancel</button>
+                <button class="btn btn-primary" id="modal-ok-btn">OK</button>
             </div>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <main class="main">
-        <div class="mobile-header">
-            <select class="month-select" id="month-select-mobile"></select>
-            <button class="btn btn-sm" id="add-month-btn-mobile">＋</button>
-            <button class="btn btn-sm" id="next-month-btn-mobile">→</button>
-            <button class="btn btn-sm" id="import-data-btn-mobile">📥</button>
-            <button class="btn btn-sm" id="export-data-btn-mobile">📤</button>
-            <button class="btn btn-sm" id="sync-now-btn-mobile" title="Sync Now">☁ <span id="sync-dot-mobile" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--text-muted);vertical-align:middle"></span></button>
-            <button class="btn btn-sm" id="github-settings-btn-mobile" title="GitHub Settings">⚙</button>
-        </div>
-
-        <!-- SUMMARY TAB -->
-        <div id="summary-tab" class="tab-pane active">
-            <div class="page-header">
-                <div class="page-title">Summary</div>
-                <div class="page-subtitle" id="summary-month-label"></div>
+    <!-- Settings -->
+    <div class="settings-overlay" id="settings-overlay">
+        <div class="settings-box">
+            <div class="settings-head">
+                <h2>Settings</h2>
+                <button class="btn btn-sm" id="settings-close-btn">Close</button>
             </div>
 
-            <div class="stat-grid" id="summary-stat-grid"></div>
-
-            <div class="true-balance-card" id="true-balance-card"></div>
-
-            <div id="summary-details" style="margin-top:20px"></div>
-
-            <div class="balance-checker-card" style="margin-top:20px">
-                <div class="summary-block-title">Balance Checker</div>
-                <div class="form-row">
-                    <span class="form-label">Actual Account Balance</span>
-                    <input type="number" class="form-input" id="actual-balance" step="0.01" placeholder="0.00">
-                    <button class="btn" id="check-balance-btn">Check</button>
+            <div class="settings-section">
+                <div class="settings-title">Appearance</div>
+                <div class="seg" id="theme-seg">
+                    <button type="button" data-theme-val="dark">Dark</button>
+                    <button type="button" data-theme-val="light">Light</button>
                 </div>
-                <div id="balance-check-result"></div>
+                <div class="settings-note" style="margin-top:8px">Saved on this device only.</div>
             </div>
-        </div>
 
-        <!-- INCOME TAB -->
-        <div id="income-tab" class="tab-pane">
-            <div class="page-header">
-                <div class="page-title">Income</div>
+            <div class="settings-section">
+                <div class="settings-title">Fuel tracking</div>
+                <label class="switch-row">
+                    <span class="txt">Enable fuel tracking
+                        <small>Shows the Fuel section and the fuel figures on the Summary. Turning it off only hides fuel data, nothing is deleted.</small>
+                    </span>
+                    <input type="checkbox" class="switch" id="fuel-enabled-toggle">
+                </label>
             </div>
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">Income Sources</div>
-                    <div class="panel-actions">
-                        <button class="btn btn-primary btn-sm" id="add-income-btn">＋ Add</button>
-                        <button class="btn btn-sm" id="edit-income-btn">Edit</button>
-                        <button class="btn btn-danger btn-sm" id="delete-income-btn">Delete</button>
-                    </div>
+
+            <div class="settings-section">
+                <div class="settings-title">GitHub sync</div>
+                <div class="settings-note" style="margin-bottom:14px">Your app stays in its <strong>public</strong> repo (so GitHub Pages keeps working). Your data is saved to a separate <strong>private</strong> repo that only you can access.</div>
+                <div class="form-group">
+                    <label>GitHub Username</label>
+                    <input type="text" id="gh-username" placeholder="e.g. johndoe" autocomplete="off" autocapitalize="off">
                 </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead><tr><th>Source</th><th style="text-align:right">Amount</th></tr></thead>
-                        <tbody id="income-tbody"></tbody>
-                    </table>
+                <div class="form-group">
+                    <label>Data Repository (private)</label>
+                    <input type="text" id="gh-repo" placeholder="e.g. budget-data" autocomplete="off" autocapitalize="off">
+                    <div class="hint">A <strong>private</strong> repo just for data, e.g. <code>budget-data</code>.</div>
                 </div>
-            </div>
-        </div>
-
-        <!-- FUEL TAB -->
-        <div id="fuel-tab" class="tab-pane">
-            <div class="page-header">
-                <div class="page-title">Fuel Advance</div>
-            </div>
-
-            <div class="stat-grid" id="fuel-stat-grid"></div>
-
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">Fuel Advance Amount</div>
+                <div class="form-group">
+                    <label>Data Filename</label>
+                    <input type="text" id="gh-filename" placeholder="e.g. data_john.json" autocomplete="off" autocapitalize="off">
+                    <div class="hint">Use a unique name per person, e.g. <code>data_john.json</code> and <code>data_sarah.json</code>.</div>
                 </div>
-                <div class="form-row">
-                    <span class="form-label">Advance</span>
-                    <input type="number" class="form-input" id="fuel-advance" step="0.01" min="0">
-                    <button class="btn" id="update-fuel-advance-btn">Update</button>
+                <div class="form-group">
+                    <label>Personal Access Token</label>
+                    <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+                    <div class="hint">Needs <strong>repo</strong> scope to read/write the private data repo. Stored only in this browser. <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">Create one here →</a></div>
                 </div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">Fuel Purchases</div>
-                    <div class="panel-actions">
-                        <button class="btn btn-primary btn-sm" id="add-fuel-btn">＋ Add</button>
-                        <button class="btn btn-sm" id="edit-fuel-btn">Edit</button>
-                        <button class="btn btn-danger btn-sm" id="delete-fuel-btn">Delete</button>
-                        <button class="btn btn-sm" id="toggle-fuel-paid-btn">Toggle Paid</button>
-                    </div>
+                <div class="settings-footer">
+                    <button class="btn btn-danger btn-sm" id="gh-clear-btn">Clear Config</button>
+                    <button class="btn btn-primary" id="gh-save-btn">Save &amp; Sync</button>
                 </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead><tr><th>Description</th><th style="text-align:right">Amount</th><th>Date</th><th>Status</th></tr></thead>
-                        <tbody id="fuel-tbody"></tbody>
-                    </table>
-                </div>
-                <div id="fuel-bar-section"></div>
+                <div class="settings-sync-status" id="settings-sync-status"></div>
             </div>
-        </div>
-
-        <!-- EXPENSES TAB -->
-        <div id="expenses-tab" class="tab-pane">
-            <div class="page-header">
-                <div class="page-title">Expenses</div>
-            </div>
-
-            <div class="sub-tabs" id="expense-sub-tabs">
-                <button class="sub-tab active" data-category="fixed">Fixed</button>
-                <button class="sub-tab" data-category="flexible">Flexible</button>
-                <button class="sub-tab" data-category="subscriptions">Subscriptions</button>
-                <button class="sub-tab" data-category="international_bank">Intl Bank</button>
-                <button class="sub-tab" data-category="ad_hoc">Ad Hoc</button>
-            </div>
-
-            <div id="expense-panes">
-                <div id="fixed-expense" class="expense-pane active"></div>
-                <div id="flexible-expense" class="expense-pane"></div>
-                <div id="subscriptions-expense" class="expense-pane"></div>
-                <div id="international_bank-expense" class="expense-pane"></div>
-                <div id="ad_hoc-expense" class="expense-pane"></div>
-            </div>
-        </div>
-
-        <!-- ACCOUNTS TAB -->
-        <div id="accounts-tab" class="tab-pane">
-            <div class="page-header">
-                <div class="page-title">Accounts</div>
-            </div>
-            <div id="accounts-content"></div>
-        </div>
-    </main>
-</div>
-
-<!-- Modal -->
-<div class="modal-overlay" id="modal">
-    <div class="modal-box">
-        <div class="modal-title" id="modal-title">Dialog</div>
-        <div class="modal-form" id="modal-body"></div>
-        <div class="modal-footer">
-            <button class="btn" id="modal-cancel-btn">Cancel</button>
-            <button class="btn btn-primary" id="modal-ok-btn">OK</button>
         </div>
     </div>
-</div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+/* ═════════════════════════════════════════════════════════════
+   Helpers: escaping + dates
+   ═════════════════════════════════════════════════════════════ */
+/* HELPERS_START */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
+
+// Dates are STORED as yyyy-mm-dd (months as yyyy-mm) and DISPLAYED as dd/mm/yyyy (mm/yyyy).
+const DateFmt = (() => {
+    const pad = n => String(n).padStart(2, '0');
+    return {
+        todayISO() {
+            const d = new Date();
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; // local time, not UTC
+        },
+        fmtDate(iso) {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+            return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso || '');
+        },
+        parseDMY(s) {
+            const m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/.exec(String(s || '').trim());
+            if (!m) return null;
+            const d = +m[1], mo = +m[2], y = +m[3];
+            if (y < 1900 || y > 2100) return null;
+            const dt = new Date(y, mo - 1, d);
+            if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+            return `${y}-${pad(mo)}-${pad(d)}`;
+        },
+        fmtMonth(key) {
+            const m = /^(\d{4})-(\d{2})$/.exec(key || '');
+            return m ? `${m[2]}/${m[1]}` : (key || '');
+        },
+        parseMonth(s) {
+            s = String(s || '').trim();
+            let y, mo, m = /^(\d{1,2})[\/\-.](\d{4})$/.exec(s);
+            if (m) { mo = +m[1]; y = +m[2]; }
+            else {
+                m = /^(\d{4})-(\d{1,2})$/.exec(s);
+                if (!m) return null;
+                y = +m[1]; mo = +m[2];
+            }
+            if (mo < 1 || mo > 12 || y < 1900 || y > 2100) return null;
+            return `${y}-${pad(mo)}`;
+        }
+    };
+})();
+/* HELPERS_END */
+
+/* ═════════════════════════════════════════════════════════════
+   Sync core: pure logic, no DOM. Two-way, newest month wins.
+   ═════════════════════════════════════════════════════════════ */
+/* SYNC_CORE_START */
+const SyncCore = (() => {
+    const CATS = ['fixed', 'flexible', 'subscriptions', 'international_bank', 'ad_hoc', 'fuel'];
+    const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+    class SyncError extends Error {
+        constructor(message, status, conflict) {
+            super(message);
+            this.status = status || 0;
+            this.conflict = !!conflict;
+        }
+    }
+
+    // Stable stringify so two structures can be compared for equality
+    function canon(v) {
+        if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+        if (isObj(v)) {
+            return '{' + Object.keys(v).sort().filter(k => v[k] !== undefined)
+                .map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
+        }
+        return JSON.stringify(v === undefined ? null : v);
+    }
+
+    function normalizeMonth(m) {
+        m = isObj(m) ? m : {};
+        m.income = Array.isArray(m.income) ? m.income : [];
+        m.fuel_advance = Number(m.fuel_advance) || 0;
+        m.expenses = isObj(m.expenses) ? m.expenses : {};
+        CATS.forEach(c => { if (!Array.isArray(m.expenses[c])) m.expenses[c] = []; });
+        m.accounts = isObj(m.accounts) ? m.accounts : {};
+        m.accounts.credit = Number(m.accounts.credit) || 0;
+        m.accounts.savings = Number(m.accounts.savings) || 0;
+        if (m.updated_at !== undefined) m.updated_at = Number(m.updated_at) || 0;
+        return m;
+    }
+
+    function normalizeData(d) {
+        const out = { months: {}, settings: isObj(d && d.settings) ? d.settings : {} };
+        const ms = isObj(d && d.months) ? d.months : {};
+        Object.keys(ms).forEach(k => { out.months[k] = normalizeMonth(ms[k]); });
+        return out;
+    }
+
+    // Deep copy of just the syncable parts (months + settings)
+    function snapshot(d) {
+        return normalizeData(JSON.parse(JSON.stringify({ months: d.months, settings: d.settings })));
+    }
+
+    // Month by month, the more recently edited copy wins. On an exact tie, remote wins.
+    // (Ties only happen for old data that has no timestamps yet.)
+    function mergeData(local, remote) {
+        const out = { months: {}, settings: {} };
+        const keys = new Set([...Object.keys(local.months), ...Object.keys(remote.months)]);
+        keys.forEach(k => {
+            const l = local.months[k], r = remote.months[k];
+            if (!l) out.months[k] = r;
+            else if (!r) out.months[k] = l;
+            else out.months[k] = (l.updated_at || 0) > (r.updated_at || 0) ? l : r;
+        });
+        const ls = local.settings || {}, rs = remote.settings || {};
+        out.settings = (ls.updated_at || 0) > (rs.updated_at || 0) ? ls : rs;
+        return out;
+    }
+
+    // How many months (+ settings) differ between two datasets
+    function diffCount(a, b) {
+        let n = 0;
+        new Set([...Object.keys(a.months), ...Object.keys(b.months)]).forEach(k => {
+            if (canon(a.months[k]) !== canon(b.months[k])) n++;
+        });
+        if (canon(a.settings) !== canon(b.settings)) n++;
+        return n;
+    }
+
+    // UTF-8 safe base64
+    function utf8ToB64(str) {
+        const bytes = new TextEncoder().encode(str);
+        let bin = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+            bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        }
+        return btoa(bin);
+    }
+
+    function b64ToUtf8(b64) {
+        const bin = atob(String(b64).replace(/\s/g, ''));
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new TextDecoder('utf-8').decode(bytes);
+    }
+
+    function fileUrl(cfg) {
+        const path = String(cfg.filename).split('/').map(encodeURIComponent).join('/');
+        return `https://api.github.com/repos/${encodeURIComponent(cfg.username)}/${encodeURIComponent(cfg.repo)}/contents/${path}`;
+    }
+
+    function describe(status, apiMsg) {
+        if (status === 401) return 'GitHub rejected the token (wrong or expired)';
+        if (status === 403) return 'GitHub refused the request (token permissions or rate limit): ' + (apiMsg || '');
+        if (status === 404) return 'Repo or file not found. Check username, repo name and that the token can access the repo';
+        return `GitHub error ${status}: ${apiMsg || 'unknown'}`;
+    }
+
+    async function request(fetchFn, url, opts) {
+        try { return await fetchFn(url, opts); }
+        catch (e) { throw new SyncError('No connection to GitHub (offline?)', 0); }
+    }
+
+    async function apiMessage(resp) {
+        try { const j = await resp.json(); return j && j.message ? j.message : ''; } catch (e) { return ''; }
+    }
+
+    async function getRemote(fetchFn, cfg) {
+        // cache:'no-store' + a throwaway query param stop the browser serving a stale copy
+        const resp = await request(fetchFn, fileUrl(cfg) + '?t=' + Date.now(), {
+            cache: 'no-store',
+            headers: { 'Authorization': 'Bearer ' + cfg.token, 'Accept': 'application/vnd.github+json' }
+        });
+        if (resp.status === 404) return null;
+        if (!resp.ok) throw new SyncError(describe(resp.status, await apiMessage(resp)), resp.status);
+        const j = await resp.json();
+        let data;
+        try {
+            if (typeof j.content !== 'string' || !j.content) throw new Error('empty');
+            data = JSON.parse(b64ToUtf8(j.content));
+            if (!isObj(data)) throw new Error('not an object');
+        } catch (e) {
+            throw new SyncError('The file on GitHub is not valid budget JSON. Not overwriting it', 0);
+        }
+        return { sha: j.sha, data };
+    }
+
+    async function putRemote(fetchFn, cfg, payload, sha, message) {
+        const body = { message, content: utf8ToB64(JSON.stringify(payload, null, 2)) };
+        if (sha) body.sha = sha;
+        const resp = await request(fetchFn, fileUrl(cfg), {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'Bearer ' + cfg.token,
+                'Accept': 'application/vnd.github+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        if (resp.ok) { const j = await resp.json(); return j.content.sha; }
+        const msg = await apiMessage(resp);
+        if (resp.status === 409 || (resp.status === 422 && /sha/i.test(msg))) {
+            throw new SyncError('The file changed on GitHub while syncing', resp.status, true);
+        }
+        throw new SyncError(describe(resp.status, msg), resp.status);
+    }
+
+    /**
+     * One full sync: fetch remote -> merge -> apply to local if needed -> push if needed.
+     * getLocal(): returns the live data object.  applyLocal(merged): writes merged data locally.
+     * Returns { sha, pulled, pushed } where pulled/pushed = number of changes moved each way.
+     */
+    async function cycle({ fetchFn, cfg, getLocal, applyLocal, currentMonth, now }) {
+        const stamp = (now || (() => new Date().toISOString()))();
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const remote = await getRemote(fetchFn, cfg);
+            const local = snapshot(getLocal());   // taken AFTER the await, so it is current
+            const payloadOf = m => ({ months: m.months, settings: m.settings, current_month: currentMonth() });
+
+            if (!remote) {
+                if (!Object.keys(local.months).length) return { sha: null, pulled: 0, pushed: 0 };
+                try {
+                    const sha = await putRemote(fetchFn, cfg, payloadOf(local), null, 'sync: ' + stamp);
+                    return { sha, pulled: 0, pushed: Object.keys(local.months).length };
+                } catch (e) { if (e.conflict) continue; throw e; }
+            }
+
+            const rd = normalizeData(remote.data);
+            const merged = mergeData(local, rd);
+            const pulled = diffCount(merged, local);
+            const pushed = diffCount(merged, rd);
+
+            if (pulled) applyLocal(merged);
+            let sha = remote.sha;
+            if (pushed) {
+                try { sha = await putRemote(fetchFn, cfg, payloadOf(merged), remote.sha, 'sync: ' + stamp); }
+                catch (e) { if (e.conflict) continue; throw e; }
+            }
+            return { sha, pulled, pushed };
+        }
+        throw new SyncError('Could not sync: the file kept changing on GitHub. Try again', 409);
+    }
+
+    return { SyncError, canon, normalizeMonth, normalizeData, snapshot, mergeData, diffCount, utf8ToB64, b64ToUtf8, fileUrl, cycle };
+})();
+/* SYNC_CORE_END */
+
+/* ═════════════════════════════════════════════════════════════
+   App
+   ═════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+
 class BudgetTracker {
     constructor() {
-        this.data = {
-            months: {},
-            current_month: this.getCurrentMonth()
-        };
-        this.selectedRow = null;
+        this.data = { months: {}, settings: {}, current_month: this.getCurrentMonth() };
+        this._syncing = false;
+        this._pending = false;
+        this._toastNext = false;
+        this._prevState = null;
+        this._lastSyncEnd = 0;
+
         this.loadData();
-        // Only initialize current month locally if GitHub sync is not configured
-        // If sync is configured, the pull will bring down the correct data
-        if (!this.getGHConfig()) {
-            this.initializeCurrentMonth();
-        }
+        this.initializeCurrentMonth();
         this.setupEventListeners();
+        this.applyTheme(this.getTheme());
         this.refreshDisplay();
         this.initGitHubSync();
     }
 
+    /* ─── Months ─── */
     getCurrentMonth() {
         const now = new Date();
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     }
 
     getPreviousMonth(monthKey) {
-        try {
-            const [year, month] = monthKey.split('-').map(Number);
-            return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, '0')}`;
-        } catch { return null; }
+        const m = /^(\d{4})-(\d{2})$/.exec(monthKey || '');
+        if (!m) return null;
+        const y = +m[1], mo = +m[2];
+        return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`;
     }
 
-    formatMonthLabel(monthKey) {
-        try {
-            const [y, m] = monthKey.split('-').map(Number);
-            const d = new Date(y, m - 1);
-            return d.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' });
-        } catch { return monthKey; }
+    getNextMonth(monthKey) {
+        const [y, mo] = monthKey.split('-').map(Number);
+        return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`;
     }
+
+    formatMonthLabel(key) { return DateFmt.fmtMonth(key); }
 
     initializeMonth(monthKey) {
-        const prevMonth = this.getPreviousMonth(monthKey);
-        const monthData = {
-            income: [],
-            fuel_advance: 0.0,
-            expenses: { fixed: [], flexible: [], subscriptions: [], international_bank: [], ad_hoc: [], fuel: [] },
-            accounts: { credit: 0.0, savings: 0.0 }
-        };
+        const prev = this.data.months[this.getPreviousMonth(monthKey)];
+        const md = SyncCore.normalizeMonth({});
 
-        if (prevMonth && this.data.months[prevMonth]) {
-            const prev = this.data.months[prevMonth];
+        // Carry recurring items over from the previous month (paid reset, day kept)
+        if (prev && prev.expenses) {
             ['fixed', 'flexible', 'subscriptions'].forEach(cat => {
-                if (prev.expenses[cat]) {
-                    prev.expenses[cat].forEach(exp => {
-                        monthData.expenses[cat].push({ name: exp.name, amount: exp.amount, paid: false, day: exp.day || 1 });
-                    });
-                }
+                (prev.expenses[cat] || []).forEach(e => {
+                    md.expenses[cat].push({ name: e.name, amount: e.amount, paid: false, day: e.day || 1 });
+                });
             });
         }
-        this.data.months[monthKey] = monthData;
+        this.data.months[monthKey] = md;
+        return md;
     }
 
     initializeCurrentMonth() {
-        if (!this.data.months[this.data.current_month]) {
-            this.initializeMonth(this.data.current_month);
-        }
+        if (!this.data.months[this.data.current_month]) this.initializeMonth(this.data.current_month);
     }
+
+    setCurrentMonth(key) {
+        this.data.current_month = key;
+        try { localStorage.setItem('budgetCurrentMonth', key); } catch (e) {}
+    }
+
+    md() { return this.data.months[this.data.current_month]; }
 
     roundMoney(v) { return Math.round(v * 100) / 100; }
 
-    // ─── Event Listeners ───
+    /* Every user edit goes through commit(): stamps the month, redraws, saves, syncs. */
+    commit() {
+        const md = this.md();
+        if (md) md.updated_at = Date.now();
+        this.refreshDisplay();
+        this.saveData();
+    }
+
+    /* ─── Fuel on/off ─── */
+    fuelEnabled() {
+        const s = this.data.settings || {};
+        if (typeof s.fuel_enabled === 'boolean') return s.fuel_enabled;
+        // Not chosen yet: on if there is any fuel data, off otherwise
+        return Object.values(this.data.months).some(m =>
+            (m.fuel_advance || 0) > 0 || ((m.expenses && m.expenses.fuel) || []).length > 0);
+    }
+
+    setFuelEnabled(on) {
+        this.data.settings = Object.assign({}, this.data.settings, { fuel_enabled: on, updated_at: Date.now() });
+        this.refreshDisplay();
+        this.saveData();
+    }
+
+    applyFuelVisibility() {
+        const on = this.fuelEnabled();
+        document.querySelectorAll('[data-fuel-only]').forEach(el => { el.hidden = !on; });
+        const toggle = $('fuel-enabled-toggle');
+        if (toggle) toggle.checked = on;
+        if (!on && $('fuel-tab').classList.contains('active')) this.switchTab('summary');
+    }
+
+    /* ─── Theme (per device) ─── */
+    getTheme() {
+        try { return localStorage.getItem('budgetTheme') === 'light' ? 'light' : 'dark'; } catch (e) { return 'dark'; }
+    }
+
+    applyTheme(t) {
+        document.documentElement.setAttribute('data-theme', t);
+        try { localStorage.setItem('budgetTheme', t); } catch (e) {}
+        const meta = $('meta-theme-color');
+        if (meta) meta.setAttribute('content', t === 'light' ? '#e6e9f0' : '#0f1117');
+        document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('active', b.dataset.themeVal === t));
+        $('theme-btn').textContent = t === 'light' ? '🌓 Dark mode' : '🌓 Light mode';
+    }
+
+    toggleTheme() { this.applyTheme(this.getTheme() === 'light' ? 'dark' : 'light'); }
+
+    /* ─── Event listeners ─── */
     setupEventListeners() {
-        // Month select (desktop)
-        document.getElementById('month-select').addEventListener('change', e => {
-            this.data.current_month = e.target.value;
-            this.syncMonthSelects();
-            this.refreshDisplay();
+        ['month-select', 'month-select-mobile'].forEach(id => {
+            $(id).addEventListener('change', e => {
+                this.setCurrentMonth(e.target.value);
+                this.refreshDisplay();
+            });
         });
 
-        // Month select (mobile)
-        document.getElementById('month-select-mobile').addEventListener('change', e => {
-            this.data.current_month = e.target.value;
-            this.syncMonthSelects();
-            this.refreshDisplay();
+        ['add-month-btn', 'add-month-btn-mobile'].forEach(id => $(id).addEventListener('click', () => this.addNewMonth()));
+        ['next-month-btn', 'next-month-btn-mobile'].forEach(id => $(id).addEventListener('click', () => this.nextMonth()));
+
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => this.switchTab(btn.dataset.tab)));
+        document.querySelectorAll('.sub-tab').forEach(btn => btn.addEventListener('click', () => this.switchExpenseTab(btn.dataset.category)));
+
+        $('add-income-btn').addEventListener('click', () => this.addIncome());
+        $('edit-income-btn').addEventListener('click', () => this.editIncome());
+        $('delete-income-btn').addEventListener('click', () => this.deleteIncome());
+
+        $('update-fuel-advance-btn').addEventListener('click', () => this.updateFuelAdvance());
+        $('add-fuel-btn').addEventListener('click', () => this.addFuelPurchase());
+        $('edit-fuel-btn').addEventListener('click', () => this.editFuelPurchase());
+        $('delete-fuel-btn').addEventListener('click', () => this.deleteFuelPurchase());
+        $('toggle-fuel-paid-btn').addEventListener('click', () => this.toggleFuelPaid());
+
+        $('check-balance-btn').addEventListener('click', () => this.checkBalance());
+
+        ['import-data-btn', 'import-data-btn-mobile'].forEach(id => $(id).addEventListener('click', () => $('file-input').click()));
+        ['export-data-btn', 'export-data-btn-mobile'].forEach(id => $(id).addEventListener('click', () => this.exportData()));
+        $('file-input').addEventListener('change', e => this.handleFileSelect(e));
+
+        ['theme-btn', 'theme-btn-mobile'].forEach(id => $(id).addEventListener('click', () => this.toggleTheme()));
+        document.querySelectorAll('#theme-seg button').forEach(b => b.addEventListener('click', () => this.applyTheme(b.dataset.themeVal)));
+
+        ['settings-btn', 'settings-btn-mobile'].forEach(id => $(id).addEventListener('click', () => this.openSettings()));
+        $('settings-close-btn').addEventListener('click', () => this.closeSettings());
+        $('settings-overlay').addEventListener('click', e => { if (e.target.id === 'settings-overlay') this.closeSettings(); });
+
+        $('fuel-enabled-toggle').addEventListener('change', e => {
+            const on = e.target.checked;
+            if (!on && !confirm('Hide fuel tracking?\n\nYour fuel data is kept and will come back if you turn fuel tracking on again.')) {
+                e.target.checked = true;
+                return;
+            }
+            this.setFuelEnabled(on);
         });
 
-        // Add/Next month (desktop + mobile)
-        ['add-month-btn', 'add-month-btn-mobile'].forEach(id => {
-            document.getElementById(id).addEventListener('click', () => this.addNewMonth());
-        });
-        ['next-month-btn', 'next-month-btn-mobile'].forEach(id => {
-            document.getElementById(id).addEventListener('click', () => this.nextMonth());
-        });
-
-        // Nav tabs
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
-        });
-
-        // Expense sub-tabs
-        document.querySelectorAll('.sub-tab').forEach(btn => {
-            btn.addEventListener('click', () => this.switchExpenseTab(btn.dataset.category));
-        });
-
-        // Income
-        document.getElementById('add-income-btn').addEventListener('click', () => this.addIncome());
-        document.getElementById('edit-income-btn').addEventListener('click', () => this.editIncome());
-        document.getElementById('delete-income-btn').addEventListener('click', () => this.deleteIncome());
-
-        // Fuel
-        document.getElementById('update-fuel-advance-btn').addEventListener('click', () => this.updateFuelAdvance());
-        document.getElementById('add-fuel-btn').addEventListener('click', () => this.addFuelPurchase());
-        document.getElementById('edit-fuel-btn').addEventListener('click', () => this.editFuelPurchase());
-        document.getElementById('delete-fuel-btn').addEventListener('click', () => this.deleteFuelPurchase());
-        document.getElementById('toggle-fuel-paid-btn').addEventListener('click', () => this.toggleFuelPaid());
-
-        // Balance check
-        document.getElementById('check-balance-btn').addEventListener('click', () => this.checkBalance());
-
-        // Import/Export
-        ['import-data-btn', 'import-data-btn-mobile'].forEach(id => {
-            document.getElementById(id).addEventListener('click', () => document.getElementById('file-input').click());
-        });
-        ['export-data-btn', 'export-data-btn-mobile'].forEach(id => {
-            document.getElementById(id).addEventListener('click', () => this.exportData());
-        });
-        document.getElementById('file-input').addEventListener('change', e => this.handleFileSelect(e));
-
-        // Modal
-        document.getElementById('modal-cancel-btn').addEventListener('click', () => this.closeModal());
+        $('modal-cancel-btn').addEventListener('click', () => this.closeModal());
         window.addEventListener('click', e => { if (e.target.id === 'modal') this.closeModal(); });
     }
 
-    syncMonthSelects() {
-        ['month-select', 'month-select-mobile'].forEach(id => {
-            document.getElementById(id).value = this.data.current_month;
-        });
-    }
-
     switchTab(name) {
+        if (name === 'fuel' && !this.fuelEnabled()) name = 'summary';
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
         document.querySelectorAll(`.nav-btn[data-tab="${name}"]`).forEach(b => b.classList.add('active'));
-        document.getElementById(`${name}-tab`).classList.add('active');
+        $(`${name}-tab`).classList.add('active');
     }
 
     switchExpenseTab(cat) {
         document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.expense-pane').forEach(p => p.classList.remove('active'));
         document.querySelector(`.sub-tab[data-category="${cat}"]`).classList.add('active');
-        document.getElementById(`${cat}-expense`).classList.add('active');
+        $(`${cat}-expense`).classList.add('active');
     }
 
-    // ─── Month Management ───
+    /* ─── Month management ─── */
     addNewMonth() {
-        const monthStr = prompt('Enter month (YYYY-MM format):');
-        if (monthStr) {
-            const [year, month] = monthStr.split('-');
-            if (year && month && month.length === 2 && !isNaN(year) && !isNaN(month)) {
-                if (!this.data.months[monthStr]) {
-                    this.initializeMonth(monthStr);
-                    this.data.current_month = monthStr;
-                    this.refreshDisplay();
-                    this.saveData();
-                } else {
-                    this.data.current_month = monthStr;
-                    this.refreshDisplay();
-                }
-            } else {
-                alert('Invalid date format. Use YYYY-MM');
-            }
+        const input = prompt('Enter month (MM/YYYY):');
+        if (input === null || input.trim() === '') return;
+        const key = DateFmt.parseMonth(input);
+        if (!key) return alert('Invalid month. Use MM/YYYY, for example 03/2026');
+        if (!this.data.months[key]) {
+            this.initializeMonth(key).updated_at = Date.now();
+            this.setCurrentMonth(key);
+            this.refreshDisplay();
+            this.saveData();
+        } else {
+            this.setCurrentMonth(key);
+            this.refreshDisplay();
         }
     }
 
     nextMonth() {
-        const [year, month] = this.data.current_month.split('-').map(Number);
-        const next = month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, '0')}`;
-        if (!this.data.months[next]) this.initializeMonth(next);
-        this.data.current_month = next;
-        this.refreshDisplay();
-        this.saveData();
-    }
-
-    // ─── Income ───
-    addIncome() {
-        this.showIncomeDialog('Add Income', null, result => {
-            this.data.months[this.data.current_month].income.push(result);
+        const next = this.getNextMonth(this.data.current_month);
+        if (!this.data.months[next]) {
+            this.initializeMonth(next).updated_at = Date.now();
+            this.setCurrentMonth(next);
             this.refreshDisplay();
             this.saveData();
+        } else {
+            this.setCurrentMonth(next);
+            this.refreshDisplay();
+        }
+    }
+
+    /* ─── Income ─── */
+    addIncome() {
+        this.showIncomeDialog('Add Income', null, result => {
+            this.md().income.push(result);
+            this.commit();
         });
     }
 
     editIncome() {
         const idx = this.getSelectedRowIndex('income-tbody');
         if (idx === null) return alert('Select an income source first');
-        const income = this.data.months[this.data.current_month].income[idx];
-        this.showIncomeDialog('Edit Income', income, result => {
-            this.data.months[this.data.current_month].income[idx] = result;
-            this.refreshDisplay();
-            this.saveData();
+        this.showIncomeDialog('Edit Income', this.md().income[idx], result => {
+            this.md().income[idx] = result;
+            this.commit();
         });
     }
 
@@ -1441,42 +1607,51 @@ class BudgetTracker {
         const idx = this.getSelectedRowIndex('income-tbody');
         if (idx === null) return alert('Select an income source first');
         if (confirm('Delete this income source?')) {
-            this.data.months[this.data.current_month].income.splice(idx, 1);
-            this.refreshDisplay();
-            this.saveData();
+            this.md().income.splice(idx, 1);
+            this.commit();
         }
     }
 
-    // ─── Fuel ───
+    /* ─── Fuel ─── */
     updateFuelAdvance() {
-        const v = parseFloat(document.getElementById('fuel-advance').value || 0);
-        if (v < 0) return alert('Cannot be negative');
-        this.data.months[this.data.current_month].fuel_advance = v;
-        this.refreshDisplay();
-        this.saveData();
+        const v = parseFloat($('fuel-advance').value || 0);
+        if (isNaN(v) || v < 0) return alert('Enter a valid amount (not negative)');
+        this.md().fuel_advance = v;
+        this.commit();
+    }
+
+    // Returns true if OK to proceed (within advance, or the user accepted the overspend)
+    confirmFuelOverspend(excludeIdx, amount, what) {
+        const md = this.md();
+        const others = md.expenses.fuel.reduce((s, f, i) => i !== excludeIdx ? s + f.amount : s, 0);
+        const adv = md.fuel_advance || 0;
+        const total = this.roundMoney(others + amount);
+        if (total <= adv) return true;
+        return confirm(
+            `${what} would exceed your fuel advance.\n\n` +
+            `Other fuel purchases: R${others.toFixed(2)}\n` +
+            `This purchase: R${amount.toFixed(2)}\n` +
+            `Fuel advance: R${adv.toFixed(2)}\n` +
+            `Overspend: R${this.roundMoney(total - adv).toFixed(2)}\n\n` +
+            'Proceed anyway?'
+        );
     }
 
     addFuelPurchase() {
-        const md = this.data.months[this.data.current_month];
-        const spent = md.expenses.fuel.reduce((s, f) => s + f.amount, 0);
         this.showExpenseDialog('Add Fuel Purchase', null, result => {
-            if (spent + result.amount > (md.fuel_advance || 0)) {
-                if (!confirm(`This exceeds your fuel advance by R${(spent + result.amount - md.fuel_advance).toFixed(2)}. Proceed?`)) return;
-            }
-            md.expenses.fuel.push(result);
-            this.refreshDisplay();
-            this.saveData();
+            if (!this.confirmFuelOverspend(-1, result.amount, 'This purchase')) return false;
+            this.md().expenses.fuel.push(result);
+            this.commit();
         }, 'fuel');
     }
 
     editFuelPurchase() {
         const idx = this.getSelectedRowIndex('fuel-tbody');
         if (idx === null) return alert('Select a fuel purchase first');
-        const md = this.data.months[this.data.current_month];
-        this.showExpenseDialog('Edit Fuel Purchase', md.expenses.fuel[idx], result => {
-            md.expenses.fuel[idx] = result;
-            this.refreshDisplay();
-            this.saveData();
+        this.showExpenseDialog('Edit Fuel Purchase', this.md().expenses.fuel[idx], result => {
+            if (!this.confirmFuelOverspend(idx, result.amount, 'This edit')) return false;
+            this.md().expenses.fuel[idx] = result;
+            this.commit();
         }, 'fuel');
     }
 
@@ -1484,38 +1659,33 @@ class BudgetTracker {
         const idx = this.getSelectedRowIndex('fuel-tbody');
         if (idx === null) return alert('Select a fuel purchase first');
         if (confirm('Delete this fuel purchase?')) {
-            this.data.months[this.data.current_month].expenses.fuel.splice(idx, 1);
-            this.refreshDisplay();
-            this.saveData();
+            this.md().expenses.fuel.splice(idx, 1);
+            this.commit();
         }
     }
 
     toggleFuelPaid() {
         const idx = this.getSelectedRowIndex('fuel-tbody');
         if (idx === null) return alert('Select a fuel purchase first');
-        const md = this.data.months[this.data.current_month];
-        md.expenses.fuel[idx].paid = !md.expenses.fuel[idx].paid;
-        this.refreshDisplay();
-        this.saveData();
+        const f = this.md().expenses.fuel[idx];
+        f.paid = !f.paid;
+        this.commit();
     }
 
-    // ─── Expenses ───
+    /* ─── Expenses ─── */
     addExpense(cat) {
         this.showExpenseDialog('Add Expense', null, result => {
-            this.data.months[this.data.current_month].expenses[cat].push(result);
-            this.refreshDisplay();
-            this.saveData();
+            this.md().expenses[cat].push(result);
+            this.commit();
         }, cat);
     }
 
     editExpense(cat) {
         const idx = this.getSelectedRowIndex(`${cat}-tbody`);
         if (idx === null) return alert('Select an expense first');
-        const md = this.data.months[this.data.current_month];
-        this.showExpenseDialog('Edit Expense', md.expenses[cat][idx], result => {
-            md.expenses[cat][idx] = result;
-            this.refreshDisplay();
-            this.saveData();
+        this.showExpenseDialog('Edit Expense', this.md().expenses[cat][idx], result => {
+            this.md().expenses[cat][idx] = result;
+            this.commit();
         }, cat);
     }
 
@@ -1523,35 +1693,31 @@ class BudgetTracker {
         const idx = this.getSelectedRowIndex(`${cat}-tbody`);
         if (idx === null) return alert('Select an expense first');
         if (confirm('Delete this expense?')) {
-            this.data.months[this.data.current_month].expenses[cat].splice(idx, 1);
-            this.refreshDisplay();
-            this.saveData();
+            this.md().expenses[cat].splice(idx, 1);
+            this.commit();
         }
     }
 
     toggleExpensePaid(cat) {
         const idx = this.getSelectedRowIndex(`${cat}-tbody`);
         if (idx === null) return alert('Select an expense first');
-        const md = this.data.months[this.data.current_month];
-        md.expenses[cat][idx].paid = !md.expenses[cat][idx].paid;
-        this.refreshDisplay();
-        this.saveData();
+        const e = this.md().expenses[cat][idx];
+        e.paid = !e.paid;
+        this.commit();
     }
 
-    // ─── Accounts ───
+    /* ─── Accounts ─── */
     updateAccount(type) {
-        const v = parseFloat(document.getElementById(`${type}-balance-input`).value || 0);
-        const md = this.data.months[this.data.current_month];
-        if (!md.accounts) md.accounts = { credit: 0, savings: 0 };
-        md.accounts[type] = v;
-        this.refreshDisplay();
-        this.saveData();
+        const v = parseFloat($(`${type}-balance-input`).value);
+        if (isNaN(v)) return alert('Enter a valid amount');
+        this.md().accounts[type] = v;
+        this.commit();
     }
 
-    // ─── Balance Checker ───
+    /* ─── Balance checker ─── */
     checkBalance() {
-        const actual = parseFloat(document.getElementById('actual-balance').value || 0);
-        const md = this.data.months[this.data.current_month];
+        const actual = parseFloat($('actual-balance').value || 0);
+        const md = this.md();
         const totalIncome = this.roundMoney(md.income.reduce((s, i) => s + i.amount, 0));
         let paidExp = 0;
         for (const [cat, exps] of Object.entries(md.expenses)) {
@@ -1560,7 +1726,7 @@ class BudgetTracker {
         }
         const calc = this.roundMoney(totalIncome - paidExp);
         const diff = this.roundMoney(actual - calc);
-        const el = document.getElementById('balance-check-result');
+        const el = $('balance-check-result');
         if (Math.abs(diff) < 0.01) {
             el.className = 'balance-result success';
             el.textContent = `✓ Balanced! (R${calc.toFixed(2)})`;
@@ -1573,10 +1739,11 @@ class BudgetTracker {
         }
     }
 
-    // ─── Refresh Display ───
+    /* ─── Rendering ─── */
     refreshDisplay() {
         this.updateMonthSelectors();
-        const md = this.data.months[this.data.current_month];
+        this.applyFuelVisibility();
+        const md = this.md();
         if (!md) return;
         this.refreshSummary(md);
         this.refreshIncomeTable(md);
@@ -1588,7 +1755,7 @@ class BudgetTracker {
     updateMonthSelectors() {
         const months = Object.keys(this.data.months).sort();
         ['month-select', 'month-select-mobile'].forEach(id => {
-            const sel = document.getElementById(id);
+            const sel = $(id);
             sel.innerHTML = '';
             months.forEach(m => {
                 const opt = document.createElement('option');
@@ -1601,7 +1768,8 @@ class BudgetTracker {
     }
 
     refreshSummary(md) {
-        document.getElementById('summary-month-label').textContent = this.formatMonthLabel(this.data.current_month);
+        const fuelOn = this.fuelEnabled();
+        $('summary-month-label').textContent = this.formatMonthLabel(this.data.current_month);
 
         const totalIncome = this.roundMoney(md.income.reduce((s, i) => s + i.amount, 0));
         const fuelAdvance = md.fuel_advance || 0;
@@ -1620,8 +1788,7 @@ class BudgetTracker {
         const unpaidExp = this.roundMoney(totalExp - paidExp);
         const trueBalance = this.roundMoney(projectedBalance - fuelRemaining);
 
-        // Stat cards
-        document.getElementById('summary-stat-grid').innerHTML = `
+        $('summary-stat-grid').innerHTML = `
             <div class="stat-card">
                 <div class="stat-label">Total Income</div>
                 <div class="stat-value green">R${totalIncome.toFixed(2)}</div>
@@ -1643,59 +1810,62 @@ class BudgetTracker {
             </div>
         `;
 
-        // True balance card (projected minus fuel remaining)
-        document.getElementById('true-balance-card').innerHTML = `
+        // Always shown. With fuel off there is no fuel to return, so it equals the projected balance.
+        const tb = $('true-balance-card');
+        tb.hidden = false;
+        const trueVal = fuelOn ? trueBalance : projectedBalance;
+        tb.innerHTML = `
             <div class="label">True Available Balance</div>
-            <div class="value" style="color: ${trueBalance >= 0 ? 'var(--green)' : 'var(--red)'}">R${trueBalance.toFixed(2)}</div>
-            <div class="desc">Projected balance (R${projectedBalance.toFixed(2)}) minus fuel to return (R${fuelRemaining.toFixed(2)})</div>
-            ${fuelSpent > fuelAdvance ? `<div class="desc" style="color:var(--red);margin-top:4px">⚠ Fuel overspent by R${this.roundMoney(fuelSpent - fuelAdvance).toFixed(2)}</div>` : ''}
+            <div class="value" style="color: ${trueVal >= 0 ? 'var(--green)' : 'var(--red)'}">R${trueVal.toFixed(2)}</div>
+            <div class="desc">${fuelOn
+                ? `Projected balance (R${projectedBalance.toFixed(2)}) minus fuel to return (R${fuelRemaining.toFixed(2)})`
+                : `Projected balance after all expenses are paid`}</div>
+            ${fuelOn && fuelSpent > fuelAdvance ? `<div class="desc" style="color:var(--red);margin-top:4px">⚠ Fuel overspent by R${this.roundMoney(fuelSpent - fuelAdvance).toFixed(2)}</div>` : ''}
         `;
 
-        // Detailed breakdown
-        let detailsHTML = '';
+        let html = '';
 
-        // Income details
         if (md.income.length > 0) {
-            detailsHTML += `<div class="summary-block"><div class="summary-block-title">Income</div>`;
+            html += `<div class="summary-block"><div class="summary-block-title">Income</div>`;
             md.income.forEach(i => {
-                detailsHTML += `<div class="summary-row"><span class="summary-row-label">${i.source}</span><span class="summary-row-value" style="color:var(--green)">R${i.amount.toFixed(2)}</span></div>`;
+                html += `<div class="summary-row"><span class="summary-row-label">${esc(i.source)}</span><span class="summary-row-value" style="color:var(--green)">R${i.amount.toFixed(2)}</span></div>`;
             });
-            detailsHTML += `</div>`;
+            html += `</div>`;
         }
 
-        // Expense details by category
         const catNames = { fixed: 'Fixed', flexible: 'Flexible', subscriptions: 'Subscriptions', international_bank: 'International Bank', ad_hoc: 'Ad Hoc' };
         for (const [cat, label] of Object.entries(catNames)) {
             const exps = md.expenses[cat];
             if (exps.length > 0) {
                 const catTotal = this.roundMoney(exps.reduce((s, e) => s + e.amount, 0));
                 const catPaid = this.roundMoney(exps.reduce((s, e) => e.paid ? s + e.amount : s, 0));
-                detailsHTML += `<div class="summary-block"><div class="summary-block-title">${label} Expenses</div>`;
+                html += `<div class="summary-block"><div class="summary-block-title">${label} Expenses</div>`;
                 exps.forEach(e => {
-                    detailsHTML += `<div class="expense-item-row">
-                        <span class="name"><span class="tick ${e.paid ? 'paid' : 'unpaid'}">${e.paid ? '●' : '○'}</span>${e.name}</span>
+                    html += `<div class="expense-item-row">
+                        <span class="name"><span class="tick ${e.paid ? 'paid' : 'unpaid'}">${e.paid ? '●' : '○'}</span>${esc(e.name)}</span>
                         <span class="val">R${e.amount.toFixed(2)}</span>
                     </div>`;
                 });
-                detailsHTML += `<div class="summary-row highlight">
+                html += `<div class="summary-row highlight">
                     <span class="summary-row-label">Subtotal (Paid: R${catPaid.toFixed(2)})</span>
                     <span class="summary-row-value">R${catTotal.toFixed(2)}</span>
                 </div></div>`;
             }
         }
 
-        // Fuel tracking
-        detailsHTML += `<div class="summary-block"><div class="summary-block-title">Fuel Tracking</div>
-            <div class="summary-row"><span class="summary-row-label">Fuel Advance</span><span class="summary-row-value">R${fuelAdvance.toFixed(2)}</span></div>
-            <div class="summary-row"><span class="summary-row-label">Fuel Spent</span><span class="summary-row-value">R${fuelSpent.toFixed(2)}</span></div>
-            <div class="summary-row"><span class="summary-row-label">Fuel Remaining (to return)</span><span class="summary-row-value" style="color:var(--amber)">R${fuelRemaining.toFixed(2)}</span></div>
-        </div>`;
+        if (fuelOn) {
+            html += `<div class="summary-block"><div class="summary-block-title">Fuel Tracking</div>
+                <div class="summary-row"><span class="summary-row-label">Fuel Advance</span><span class="summary-row-value">R${fuelAdvance.toFixed(2)}</span></div>
+                <div class="summary-row"><span class="summary-row-label">Fuel Spent</span><span class="summary-row-value">R${fuelSpent.toFixed(2)}</span></div>
+                <div class="summary-row"><span class="summary-row-label">Fuel Remaining (to return)</span><span class="summary-row-value" style="color:var(--amber)">R${fuelRemaining.toFixed(2)}</span></div>
+            </div>`;
+        }
 
-        document.getElementById('summary-details').innerHTML = detailsHTML;
+        $('summary-details').innerHTML = html;
     }
 
     refreshIncomeTable(md) {
-        const tbody = document.getElementById('income-tbody');
+        const tbody = $('income-tbody');
         tbody.innerHTML = '';
         if (md.income.length === 0) {
             tbody.innerHTML = '<tr><td colspan="2" class="empty-state">No income sources added yet</td></tr>';
@@ -1714,14 +1884,14 @@ class BudgetTracker {
 
     refreshFuelSection(md) {
         const adv = md.fuel_advance || 0;
-        document.getElementById('fuel-advance').value = adv;
+        $('fuel-advance').value = adv;
 
         const spent = this.roundMoney(md.expenses.fuel.reduce((s, f) => s + f.amount, 0));
         const remaining = this.roundMoney(Math.max(0, adv - spent));
         const pct = adv > 0 ? Math.min((spent / adv) * 100, 100) : 0;
         const barClass = pct > 90 ? 'danger' : pct > 70 ? 'warning' : '';
 
-        document.getElementById('fuel-stat-grid').innerHTML = `
+        $('fuel-stat-grid').innerHTML = `
             <div class="stat-card">
                 <div class="stat-label">Advance</div>
                 <div class="stat-value blue">R${adv.toFixed(2)}</div>
@@ -1736,8 +1906,11 @@ class BudgetTracker {
             </div>
         `;
 
-        const tbody = document.getElementById('fuel-tbody');
+        const tbody = $('fuel-tbody');
         tbody.innerHTML = '';
+        if (md.expenses.fuel.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No fuel purchases yet</td></tr>';
+        }
         md.expenses.fuel.forEach((f, i) => {
             const row = tbody.insertRow();
             row.dataset.index = i;
@@ -1746,11 +1919,11 @@ class BudgetTracker {
             const c = row.insertCell(1);
             c.innerHTML = `<span class="amount">R${f.amount.toFixed(2)}</span>`;
             c.style.textAlign = 'right';
-            row.insertCell(2).textContent = f.date || '';
+            row.insertCell(2).textContent = DateFmt.fmtDate(f.date);
             row.insertCell(3).innerHTML = `<span class="badge ${f.paid ? 'badge-paid' : 'badge-unpaid'}">${f.paid ? 'Paid' : 'Unpaid'}</span>`;
         });
 
-        document.getElementById('fuel-bar-section').innerHTML = adv > 0 ? `
+        $('fuel-bar-section').innerHTML = adv > 0 ? `
             <div class="fuel-bar-container">
                 <div class="fuel-bar-label"><span>R${spent.toFixed(2)} spent</span><span>R${adv.toFixed(2)} advance</span></div>
                 <div class="fuel-bar"><div class="fuel-bar-fill ${barClass}" style="width:${pct}%"></div></div>
@@ -1764,7 +1937,7 @@ class BudgetTracker {
         const usesDay = ['fixed', 'flexible', 'subscriptions'];
 
         cats.forEach(cat => {
-            const pane = document.getElementById(`${cat}-expense`);
+            const pane = $(`${cat}-expense`);
             const exps = md.expenses[cat];
             const catTotal = this.roundMoney(exps.reduce((s, e) => s + e.amount, 0));
 
@@ -1772,10 +1945,10 @@ class BudgetTracker {
                 <div class="panel-header">
                     <div class="panel-title">${catLabels[cat]}<span style="color:var(--text-muted);font-weight:400;font-size:12px;margin-left:8px">R${catTotal.toFixed(2)}</span></div>
                     <div class="panel-actions">
-                        <button class="btn btn-primary btn-sm add-expense-btn" data-category="${cat}">＋ Add</button>
-                        <button class="btn btn-sm edit-expense-btn" data-category="${cat}">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-expense-btn" data-category="${cat}">Delete</button>
-                        <button class="btn btn-sm toggle-expense-paid-btn" data-category="${cat}">Toggle Paid</button>
+                        <button class="btn btn-primary btn-sm add-expense-btn">＋ Add</button>
+                        <button class="btn btn-sm edit-expense-btn">Edit</button>
+                        <button class="btn btn-danger btn-sm delete-expense-btn">Delete</button>
+                        <button class="btn btn-sm toggle-expense-paid-btn">Toggle Paid</button>
                     </div>
                 </div>
                 <div class="table-wrap"><table>
@@ -1786,10 +1959,10 @@ class BudgetTracker {
                 html += `<tr><td colspan="4" class="empty-state">No expenses yet</td></tr>`;
             } else {
                 exps.forEach((e, i) => {
-                    html += `<tr data-index="${i}" class="expense-row" data-cat="${cat}">
-                        <td>${e.name}</td>
+                    html += `<tr data-index="${i}" class="expense-row">
+                        <td>${esc(e.name)}</td>
                         <td style="text-align:right"><span class="amount">R${e.amount.toFixed(2)}</span></td>
-                        <td>${usesDay.includes(cat) ? (e.day || 1) : (e.date || '')}</td>
+                        <td>${usesDay.includes(cat) ? esc(e.day || 1) : esc(DateFmt.fmtDate(e.date))}</td>
                         <td><span class="badge ${e.paid ? 'badge-paid' : 'badge-unpaid'}">${e.paid ? 'Paid' : 'Unpaid'}</span></td>
                     </tr>`;
                 });
@@ -1798,25 +1971,19 @@ class BudgetTracker {
             html += `</tbody></table></div></div>`;
             pane.innerHTML = html;
 
-            // Reattach row click listeners
-            pane.querySelectorAll('.expense-row').forEach(row => {
-                row.addEventListener('click', () => this.selectRow(row));
-            });
-
-            // Reattach button listeners
-            pane.querySelector('.add-expense-btn')?.addEventListener('click', () => this.addExpense(cat));
-            pane.querySelector('.edit-expense-btn')?.addEventListener('click', () => this.editExpense(cat));
-            pane.querySelector('.delete-expense-btn')?.addEventListener('click', () => this.deleteExpense(cat));
-            pane.querySelector('.toggle-expense-paid-btn')?.addEventListener('click', () => this.toggleExpensePaid(cat));
+            pane.querySelectorAll('.expense-row').forEach(row => row.addEventListener('click', () => this.selectRow(row)));
+            pane.querySelector('.add-expense-btn').addEventListener('click', () => this.addExpense(cat));
+            pane.querySelector('.edit-expense-btn').addEventListener('click', () => this.editExpense(cat));
+            pane.querySelector('.delete-expense-btn').addEventListener('click', () => this.deleteExpense(cat));
+            pane.querySelector('.toggle-expense-paid-btn').addEventListener('click', () => this.toggleExpensePaid(cat));
         });
     }
 
     refreshAccounts(md) {
-        if (!md.accounts) md.accounts = { credit: 0, savings: 0 };
         const credit = md.accounts.credit || 0;
         const savings = md.accounts.savings || 0;
 
-        document.getElementById('accounts-content').innerHTML = `
+        $('accounts-content').innerHTML = `
             <div class="account-card">
                 <div class="account-card-title">Credit Account</div>
                 <div class="account-card-value" style="color:${credit >= 0 ? 'var(--green)' : 'var(--red)'}">R${credit.toFixed(2)}</div>
@@ -1837,103 +2004,142 @@ class BudgetTracker {
             </div>
         `;
 
-        document.getElementById('update-credit-btn').addEventListener('click', () => this.updateAccount('credit'));
-        document.getElementById('update-savings-btn').addEventListener('click', () => this.updateAccount('savings'));
+        $('update-credit-btn').addEventListener('click', () => this.updateAccount('credit'));
+        $('update-savings-btn').addEventListener('click', () => this.updateAccount('savings'));
     }
 
-    // ─── Row Selection ───
+    /* ─── Row selection ─── */
     selectRow(row) {
-        const tbody = row.parentElement;
-        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+        row.parentElement.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
         row.classList.add('selected');
     }
 
     getSelectedRowIndex(tbodyId) {
-        const tbody = document.getElementById(tbodyId);
+        const tbody = $(tbodyId);
         if (!tbody) return null;
         const sel = tbody.querySelector('tr.selected');
         return sel ? parseInt(sel.dataset.index) : null;
     }
 
-    // ─── Dialogs ───
-    showIncomeDialog(title, data, callback) {
-        const modal = document.getElementById('modal');
-        document.getElementById('modal-title').textContent = title;
-        document.getElementById('modal-body').innerHTML = `
-            <div class="form-group"><label>Source</label><input type="text" id="dialog-source" value="${data ? data.source : ''}"></div>
-            <div class="form-group"><label>Amount (R)</label><input type="number" id="dialog-amount" step="0.01" min="0" value="${data ? data.amount : ''}"></div>
-        `;
-        this.setupModalOk(() => {
-            const source = document.getElementById('dialog-source').value.trim();
-            const amount = parseFloat(document.getElementById('dialog-amount').value || 0);
-            if (!source) return alert('Enter a source');
-            if (amount < 0) return alert('Cannot be negative');
-            callback({ source, amount });
-            this.closeModal();
-        });
-        modal.classList.add('show');
-        document.getElementById('dialog-source').focus();
-    }
-
-    showExpenseDialog(title, data, callback, category) {
-        const modal = document.getElementById('modal');
-        document.getElementById('modal-title').textContent = title;
-        const today = new Date().toISOString().split('T')[0];
-        let dateField = '';
-
-        if (['fixed', 'flexible', 'subscriptions'].includes(category)) {
-            dateField = `<div class="form-group"><label>Day of Month</label><input type="number" id="dialog-day" min="1" max="31" value="${data?.day || 1}"></div>`;
-        } else if (['international_bank', 'ad_hoc', 'fuel'].includes(category)) {
-            dateField = `<div class="form-group"><label>Date</label><input type="date" id="dialog-date" value="${data?.date || today}"></div>`;
-        }
-
-        document.getElementById('modal-body').innerHTML = `
-            <div class="form-group"><label>Name</label><input type="text" id="dialog-name" value="${data ? data.name : ''}"></div>
-            <div class="form-group"><label>Amount (R)</label><input type="number" id="dialog-amount" step="0.01" min="0" value="${data ? data.amount : ''}"></div>
-            ${dateField}
-            <div class="form-group"><label style="display:inline">Paid</label><input type="checkbox" id="dialog-paid" ${data?.paid ? 'checked' : ''} style="width:auto;margin-left:8px"></div>
-        `;
-
-        this.setupModalOk(() => {
-            const name = document.getElementById('dialog-name').value.trim();
-            const amount = parseFloat(document.getElementById('dialog-amount').value || 0);
-            const paid = document.getElementById('dialog-paid').checked;
-            if (!name) return alert('Enter a name');
-            if (amount < 0) return alert('Cannot be negative');
-            const result = { name, amount, paid };
-
-            if (['fixed', 'flexible', 'subscriptions'].includes(category)) {
-                const day = parseInt(document.getElementById('dialog-day').value);
-                if (day < 1 || day > 31) return alert('Day must be 1-31');
-                result.day = day;
-            } else if (['international_bank', 'ad_hoc', 'fuel'].includes(category)) {
-                const date = document.getElementById('dialog-date').value;
-                if (!date) return alert('Select a date');
-                result.date = date;
-            }
-
-            callback(result);
-            this.closeModal();
-        });
-
-        modal.classList.add('show');
-        document.getElementById('dialog-name').focus();
-    }
-
+    /* ─── Dialogs ─── */
     setupModalOk(handler) {
-        const okBtn = document.getElementById('modal-ok-btn');
+        const okBtn = $('modal-ok-btn');
         const newBtn = okBtn.cloneNode(true);
         okBtn.parentNode.replaceChild(newBtn, okBtn);
         newBtn.addEventListener('click', handler);
     }
 
-    closeModal() {
-        document.getElementById('modal').classList.remove('show');
+    showIncomeDialog(title, data, callback) {
+        $('modal-title').textContent = title;
+        $('modal-body').innerHTML = `
+            <div class="form-group"><label>Source</label><input type="text" id="dialog-source" value="${esc(data ? data.source : '')}"></div>
+            <div class="form-group"><label>Amount (R)</label><input type="number" id="dialog-amount" step="0.01" min="0" value="${esc(data ? data.amount : '')}"></div>
+        `;
+        this.setupModalOk(() => {
+            const source = $('dialog-source').value.trim();
+            const amount = parseFloat($('dialog-amount').value || 0);
+            if (!source) return alert('Enter a source');
+            if (isNaN(amount) || amount < 0) return alert('Enter a valid amount (not negative)');
+            callback({ source, amount });
+            this.closeModal();
+        });
+        $('modal').classList.add('show');
+        $('dialog-source').focus();
     }
 
-    // ─── Import / Export ───
+    // dd/mm/yyyy text box that auto-inserts slashes, plus a calendar button
+    dateFieldHTML(iso) {
+        return `
+            <div class="form-group">
+                <label>Date (dd/mm/yyyy)</label>
+                <div class="date-row">
+                    <input type="text" id="dialog-date" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off" value="${esc(DateFmt.fmtDate(iso))}">
+                    <button type="button" class="btn" id="dialog-date-btn" title="Pick from calendar">📅</button>
+                    <input type="date" class="native-date" id="dialog-date-native" tabindex="-1" aria-hidden="true">
+                </div>
+            </div>`;
+    }
+
+    bindDateField() {
+        const txt = $('dialog-date'), nat = $('dialog-date-native'), btn = $('dialog-date-btn');
+        txt.addEventListener('input', () => {
+            const d = txt.value.replace(/\D/g, '').slice(0, 8);
+            let out = d.slice(0, 2);
+            if (d.length > 2) out += '/' + d.slice(2, 4);
+            if (d.length > 4) out += '/' + d.slice(4);
+            txt.value = out;
+        });
+        btn.addEventListener('click', () => {
+            const iso = DateFmt.parseDMY(txt.value);
+            if (iso) nat.value = iso;
+            try { nat.showPicker(); } catch (e) { nat.focus(); nat.click(); }
+        });
+        nat.addEventListener('change', () => { if (nat.value) txt.value = DateFmt.fmtDate(nat.value); });
+    }
+
+    /* callback may return false to keep the dialog open */
+    showExpenseDialog(title, data, callback, category) {
+        $('modal-title').textContent = title;
+        const usesDay = ['fixed', 'flexible', 'subscriptions'].includes(category);
+        const usesDate = ['international_bank', 'ad_hoc', 'fuel'].includes(category);
+
+        let dateField = '';
+        if (usesDay) {
+            dateField = `<div class="form-group"><label>Day of Month</label><input type="number" id="dialog-day" min="1" max="31" value="${esc((data && data.day) || 1)}"></div>`;
+        } else if (usesDate) {
+            dateField = this.dateFieldHTML((data && data.date) || DateFmt.todayISO());
+        }
+
+        $('modal-body').innerHTML = `
+            <div class="form-group"><label>Name</label><input type="text" id="dialog-name" value="${esc(data ? data.name : '')}"></div>
+            <div class="form-group"><label>Amount (R)</label><input type="number" id="dialog-amount" step="0.01" min="0" value="${esc(data ? data.amount : '')}"></div>
+            ${dateField}
+            <div class="form-group"><label style="display:inline">Paid</label><input type="checkbox" id="dialog-paid" ${data && data.paid ? 'checked' : ''} style="width:auto;margin-left:8px"></div>
+        `;
+        if (usesDate) this.bindDateField();
+
+        this.setupModalOk(() => {
+            const name = $('dialog-name').value.trim();
+            const amount = parseFloat($('dialog-amount').value || 0);
+            const paid = $('dialog-paid').checked;
+            if (!name) return alert('Enter a name');
+            if (isNaN(amount) || amount < 0) return alert('Enter a valid amount (not negative)');
+            const result = { name, amount, paid };
+
+            if (usesDay) {
+                const day = parseInt($('dialog-day').value);
+                if (!(day >= 1 && day <= 31)) return alert('Day must be 1-31');
+                result.day = day;
+            } else if (usesDate) {
+                const iso = DateFmt.parseDMY($('dialog-date').value);
+                if (!iso) return alert('Enter a valid date as dd/mm/yyyy');
+                result.date = iso;
+            }
+
+            if (callback(result) === false) return;
+            this.closeModal();
+        });
+
+        $('modal').classList.add('show');
+        $('dialog-name').focus();
+    }
+
+    closeModal() { $('modal').classList.remove('show'); }
+
+    /* ─── Toast ─── */
+    toast(msg, isError) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.toggle('error', !!isError);
+        t.classList.add('show');
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => t.classList.remove('show'), isError ? 6000 : 3500);
+    }
+
+    /* ─── Import / Export ─── */
     exportData() {
-        const blob = new Blob([JSON.stringify(this.data, null, 2)], { type: 'application/json' });
+        const payload = { months: this.data.months, settings: this.data.settings, current_month: this.data.current_month };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = 'budget_data.json';
@@ -1950,14 +2156,22 @@ class BudgetTracker {
         reader.onload = e => {
             try {
                 const imported = JSON.parse(e.target.result);
-                if (!imported.months || typeof imported.months !== 'object') return alert('Invalid data file');
-                if (confirm(`Import ${Object.keys(imported.months).length} month(s)? This replaces all current data.`)) {
-                    this.data = imported;
-                    if (!this.data.current_month) this.data.current_month = this.getCurrentMonth();
-                    if (!this.data.months[this.data.current_month]) this.initializeMonth(this.data.current_month);
-                    this.saveData();
-                    this.refreshDisplay();
-                }
+                if (!imported || !imported.months || typeof imported.months !== 'object') return alert('Invalid data file');
+                if (!confirm(`Import ${Object.keys(imported.months).length} month(s)? This replaces all current data.`)) return;
+
+                const clean = SyncCore.normalizeData(imported);
+                // An import is a deliberate edit, so stamp it "now" so it wins over older copies on GitHub
+                const now = Date.now();
+                Object.values(clean.months).forEach(m => { m.updated_at = now; });
+                clean.settings.updated_at = now;
+
+                this.data.months = clean.months;
+                this.data.settings = clean.settings;
+                const cm = /^\d{4}-\d{2}$/.test(imported.current_month || '') ? imported.current_month : this.getCurrentMonth();
+                this.setCurrentMonth(cm);
+                if (!this.data.months[cm]) this.initializeMonth(cm);
+                this.refreshDisplay();
+                this.saveData();
             } catch (err) {
                 alert('Failed to import: ' + err.message);
             }
@@ -1966,230 +2180,191 @@ class BudgetTracker {
         event.target.value = '';
     }
 
-    // ─── Persistence ───
+    /* ─── Persistence (this device) ─── */
+    persistLocal() {
+        try {
+            localStorage.setItem('budgetTrackerData', JSON.stringify({ months: this.data.months, settings: this.data.settings }));
+        } catch (e) { console.error('Local save failed', e); }
+    }
+
     saveData() {
-        try { localStorage.setItem('budgetTrackerData', JSON.stringify(this.data)); } catch {}
-        this.scheduleSyncDebounced();
+        this.persistLocal();
+        this.requestSync();
     }
 
     loadData() {
         try {
-            const saved = localStorage.getItem('budgetTrackerData');
-            if (saved) {
-                this.data = JSON.parse(saved);
-                if (!this.data.current_month) this.data.current_month = this.getCurrentMonth();
+            const saved = JSON.parse(localStorage.getItem('budgetTrackerData') || 'null');
+            if (saved && saved.months) {
+                const clean = SyncCore.normalizeData(saved);
+                this.data.months = clean.months;
+                this.data.settings = clean.settings;
             }
-        } catch {}
+            // Selected month is per device. Old saves kept it inside the data blob, so fall back to that.
+            const cm = localStorage.getItem('budgetCurrentMonth') || (saved && saved.current_month);
+            if (/^\d{4}-\d{2}$/.test(cm || '')) this.data.current_month = cm;
+        } catch (e) { console.error('Load failed', e); }
     }
 
-    // ─── GitHub Sync ───
+    /* ─── GitHub sync ─── */
     getGHConfig() {
-        try {
-            const c = localStorage.getItem('ghSyncConfig');
-            return c ? JSON.parse(c) : null;
-        } catch { return null; }
+        try { const c = localStorage.getItem('ghSyncConfig'); return c ? JSON.parse(c) : null; } catch (e) { return null; }
+    }
+    saveGHConfig(cfg) { localStorage.setItem('ghSyncConfig', JSON.stringify(cfg)); }
+    clearGHConfig() { localStorage.removeItem('ghSyncConfig'); localStorage.removeItem('ghFileSHA'); }
+    setSHA(sha) { try { sha ? localStorage.setItem('ghFileSHA', sha) : localStorage.removeItem('ghFileSHA'); } catch (e) {} }
+
+    setSyncStatus(state, msg, detail) {
+        const colors = { synced: 'var(--green)', syncing: 'var(--amber)', error: 'var(--red)', unconfigured: 'var(--text-muted)' };
+        $('sync-dot').className = 'sync-dot ' + state;
+        $('sync-label').textContent = msg;
+        $('sync-status').title = detail || msg;
+        $('sync-dot-mobile').style.background = colors[state] || 'var(--text-muted)';
+        const s = $('settings-sync-status');
+        s.textContent = state === 'unconfigured' ? '' : (detail || msg);
+        s.classList.toggle('error', state === 'error');
     }
 
-    saveGHConfig(cfg) {
-        localStorage.setItem('ghSyncConfig', JSON.stringify(cfg));
-    }
-
-    clearGHConfig() {
-        localStorage.removeItem('ghSyncConfig');
-        localStorage.removeItem('ghFileSHA');
-    }
-
-    getSHA() { return localStorage.getItem('ghFileSHA') || null; }
-    setSHA(sha) { sha ? localStorage.setItem('ghFileSHA', sha) : localStorage.removeItem('ghFileSHA'); }
-
-    setSyncStatus(state, msg) {
-        const dot = document.getElementById('sync-dot');
-        const label = document.getElementById('sync-label');
-        const dotMobile = document.getElementById('sync-dot-mobile');
-        const colorMap = { synced: 'var(--green)', syncing: 'var(--amber)', error: 'var(--red)', unconfigured: 'var(--text-muted)' };
-        const color = colorMap[state] || 'var(--text-muted)';
-        if (dot) {
-            dot.className = 'sync-dot ' + state;
-        }
-        if (label) label.textContent = msg;
-        if (dotMobile) dotMobile.style.background = color;
-    }
-
-    scheduleSyncDebounced() {
+    // Debounced automatic sync after edits
+    requestSync(delay = 1500) {
         if (!this.getGHConfig()) return;
         clearTimeout(this._syncTimer);
-        this._syncTimer = setTimeout(() => this.syncToGitHub(), 1500);
+        this._syncTimer = setTimeout(() => this.runSync(false), delay);
     }
 
-    async syncToGitHub(showSuccess = false) {
+    /**
+     * The one and only entry point that talks to GitHub. Only one sync runs at a time; if more edits
+     * (or another Sync Now) arrive meanwhile, exactly one follow-up sync is run afterwards.
+     */
+    async runSync(manual) {
         const cfg = this.getGHConfig();
-        if (!cfg) return;
+        if (!cfg) { if (manual) this.openSettings(); return null; }
+        if (manual) this._toastNext = true;
+        if (this._syncing) { this._pending = true; return this._syncPromise; }
+
+        this._syncing = true;
+        this._syncPromise = (async () => {
+            let last = null;
+            try {
+                do {
+                    this._pending = false;
+                    last = await this.syncCycle();
+                    if (last.state === 'error') break;
+                } while (this._pending);
+            } finally {
+                this._syncing = false;
+                this._lastSyncEnd = Date.now();
+            }
+            const wantToast = this._toastNext || (last.state === 'error' && this._prevState !== 'error');
+            this._toastNext = false;
+            this._prevState = last.state;
+            if (wantToast) this.toast(last.msg, last.state === 'error');
+            return last;
+        })();
+        return this._syncPromise;
+    }
+
+    async syncCycle() {
+        const cfg = this.getGHConfig();
         this.setSyncStatus('syncing', 'Syncing…');
         try {
-            const apiBase = `https://api.github.com/repos/${cfg.username}/${cfg.repo}/contents/${cfg.filename}`;
-            const headers = {
-                'Authorization': `token ${cfg.token}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/vnd.github.v3+json'
-            };
-
-            // First fetch remote to check for newer data
-            let remoteSHA = null;
-            let remoteData = null;
-            try {
-                const getResp = await fetch(apiBase, { headers });
-                if (getResp.ok) {
-                    const remote = await getResp.json();
-                    remoteSHA = remote.sha;
-                    remoteData = JSON.parse(atob(remote.content.replace(/\n/g, '')));
-                }
-            } catch {}
-
-            const localSHA = this.getSHA();
-
-            // If remote has changed since we last synced, we need to merge
-            if (remoteSHA && remoteSHA !== localSHA && remoteData) {
-                // Merge: remote is newer — pull it in, but keep current_month from local
-                const mergedMonths = Object.assign({}, remoteData.months || {}, this.data.months);
-                this.data.months = mergedMonths;
-                localStorage.setItem('budgetTrackerData', JSON.stringify(this.data));
-                this.refreshDisplay();
-            }
-
-            // Push merged/current data
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(this.data, null, 2))));
-            const body = { message: `sync: ${new Date().toISOString()}`, content };
-            const currentSHA = remoteSHA || this.getSHA();
-            if (currentSHA) body.sha = currentSHA;
-
-            const putResp = await fetch(apiBase, { method: 'PUT', headers, body: JSON.stringify(body) });
-            if (!putResp.ok) {
-                const err = await putResp.json();
-                throw new Error(err.message || putResp.statusText);
-            }
-            const putData = await putResp.json();
-            this.setSHA(putData.content.sha);
-            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            this.setSyncStatus('synced', `Synced ${now}`);
+            const r = await SyncCore.cycle({
+                fetchFn: (u, o) => fetch(u, o),
+                cfg,
+                getLocal: () => this.data,
+                applyLocal: merged => this.applyMerged(merged),
+                currentMonth: () => this.data.current_month
+            });
+            this.setSHA(r.sha);
+            const time = new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const plural = n => `${n} change${n === 1 ? '' : 's'}`;
+            let short, msg;
+            if (r.pulled && r.pushed) { short = 'Merged'; msg = `Merged: got ${plural(r.pulled)} from GitHub, sent ${plural(r.pushed)}`; }
+            else if (r.pulled) { short = 'Pulled'; msg = `Pulled ${plural(r.pulled)} from GitHub`; }
+            else if (r.pushed) { short = 'Pushed'; msg = `Pushed ${plural(r.pushed)} to GitHub`; }
+            else { short = 'Up to date'; msg = 'Already up to date'; }
+            this.setSyncStatus('synced', `${short} ${time}`, `${msg} (${time})`);
+            return { state: 'synced', msg };
         } catch (err) {
             console.error('GitHub sync error:', err);
-            this.setSyncStatus('error', 'Sync failed');
+            const m = (err && err.message) || 'Unknown error';
+            this.setSyncStatus('error', 'Sync failed', m);
+            return { state: 'error', msg: 'Sync failed: ' + m };
         }
     }
 
-    async pullFromGitHub() {
-        const cfg = this.getGHConfig();
-        if (!cfg) { this.openGHSetup(); return; }
-        this.setSyncStatus('syncing', 'Pulling…');
-        try {
-            const apiBase = `https://api.github.com/repos/${cfg.username}/${cfg.repo}/contents/${cfg.filename}`;
-            const headers = {
-                'Authorization': `token ${cfg.token}`,
-                'Accept': 'application/vnd.github.v3+json'
-            };
-            const resp = await fetch(apiBase, { headers });
-            if (resp.status === 404) {
-                // No remote file yet — push current data
-                await this.syncToGitHub(true);
-                return;
-            }
-            if (!resp.ok) throw new Error(resp.statusText);
-            const remote = await resp.json();
-            const remoteData = JSON.parse(atob(remote.content.replace(/\n/g, '')));
-            this.setSHA(remote.sha);
-
-            // Merge: remote wins for any month that exists in both
-            // Local only keeps months that don't exist remotely
-            const localMonths = this.data.months || {};
-            const remoteMonths = remoteData.months || {};
-            const mergedMonths = Object.assign({}, localMonths, remoteMonths);
-
-            // Fully replace this.data with merged result
-            this.data = {
-                months: mergedMonths,
-                current_month: remoteData.current_month || this.data.current_month || this.getCurrentMonth()
-            };
-
-            // Ensure current month exists
-            if (!this.data.months[this.data.current_month]) {
-                this.initializeMonth(this.data.current_month);
-            }
-
-            // Save and force full UI refresh
-            localStorage.setItem('budgetTrackerData', JSON.stringify(this.data));
-            this.updateMonthSelectors();
-            this.refreshDisplay();
-
-            // Push merged result back
-            await this.syncToGitHub(true);
-        } catch (err) {
-            console.error('Pull error:', err);
-            this.setSyncStatus('error', 'Pull failed: ' + err.message);
-        }
+    // Write merged data locally. Months that did not change keep their object identity.
+    applyMerged(merged) {
+        Object.keys(merged.months).forEach(k => {
+            const cur = this.data.months[k];
+            if (!cur || SyncCore.canon(cur) !== SyncCore.canon(merged.months[k])) this.data.months[k] = merged.months[k];
+        });
+        this.data.settings = merged.settings;
+        this.initializeCurrentMonth();
+        this.persistLocal();   // NOT saveData(): that would schedule another sync
+        this.refreshDisplay();
     }
 
-    openGHSetup() {
+    /* ─── Settings ─── */
+    openSettings() {
         const cfg = this.getGHConfig() || {};
-        document.getElementById('gh-username').value = cfg.username || '';
-        document.getElementById('gh-repo').value = cfg.repo || '';
-        document.getElementById('gh-filename').value = cfg.filename || '';
-        document.getElementById('gh-token').value = cfg.token || '';
-        document.getElementById('github-setup-overlay').classList.add('show');
+        $('gh-username').value = cfg.username || '';
+        $('gh-repo').value = cfg.repo || '';
+        $('gh-filename').value = cfg.filename || '';
+        $('gh-token').value = cfg.token || '';
+        $('fuel-enabled-toggle').checked = this.fuelEnabled();
+        this.applyTheme(this.getTheme());
+        $('settings-overlay').classList.add('show');
     }
 
-    closeGHSetup() {
-        document.getElementById('github-setup-overlay').classList.remove('show');
-    }
+    closeSettings() { $('settings-overlay').classList.remove('show'); }
 
-    setupGHEventListeners() {
-        document.getElementById('github-settings-btn').addEventListener('click', () => this.openGHSetup());
-        document.getElementById('gh-cancel-btn').addEventListener('click', () => this.closeGHSetup());
-        document.getElementById('gh-clear-btn').addEventListener('click', () => {
+    initGitHubSync() {
+        $('gh-clear-btn').addEventListener('click', () => {
             if (confirm('Clear GitHub sync config? Your local data will not be affected.')) {
                 this.clearGHConfig();
                 this.setSyncStatus('unconfigured', 'Not configured');
-                this.closeGHSetup();
             }
         });
-        document.getElementById('gh-save-btn').addEventListener('click', async () => {
-            const username = document.getElementById('gh-username').value.trim();
-            const repo = document.getElementById('gh-repo').value.trim();
-            const filename = document.getElementById('gh-filename').value.trim();
-            const token = document.getElementById('gh-token').value.trim();
-            if (!username || !repo || !filename || !token) return alert('Please fill in all fields');
+
+        $('gh-save-btn').addEventListener('click', () => {
+            const username = $('gh-username').value.trim();
+            const repo = $('gh-repo').value.trim();
+            const filename = $('gh-filename').value.trim();
+            const token = $('gh-token').value.trim();
+            if (!username || !repo || !filename || !token) return alert('Please fill in all GitHub fields');
             if (!filename.endsWith('.json')) return alert('Filename must end with .json');
             this.saveGHConfig({ username, repo, filename, token });
-            this.setSHA(null); // reset SHA so we re-fetch
-            this.closeGHSetup();
-            await this.pullFromGitHub();
+            this.setSHA(null);
+            this.runSync(true);
         });
 
-        // Sync now buttons (desktop + mobile)
-        document.getElementById('sync-now-btn').addEventListener('click', () => this.pullFromGitHub());
-        document.getElementById('sync-now-btn-mobile')?.addEventListener('click', () => this.pullFromGitHub());
-        document.getElementById('github-settings-btn-mobile')?.addEventListener('click', () => this.openGHSetup());
-    }
+        ['sync-now-btn', 'sync-now-btn-mobile'].forEach(id => $(id).addEventListener('click', () => this.runSync(true)));
 
-    initGitHubSync() {
-        this.setupGHEventListeners();
-        const cfg = this.getGHConfig();
-        if (cfg) {
+        // Catch up when the app comes back to the foreground or the network returns
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && this.getGHConfig() && !this._syncing && Date.now() - this._lastSyncEnd > 20000) this.runSync(false);
+        });
+        window.addEventListener('online', () => { if (this.getGHConfig()) this.runSync(false); });
+
+        if (this.getGHConfig()) {
             this.setSyncStatus('syncing', 'Connecting…');
-            this.pullFromGitHub();
+            this.runSync(false);
         } else {
             this.setSyncStatus('unconfigured', 'Not configured');
-            // Show setup on first ever load
-            if (!localStorage.getItem('ghSetupSeen')) {
-                localStorage.setItem('ghSetupSeen', '1');
-                setTimeout(() => this.openGHSetup(), 800);
-            }
+            try {
+                if (!localStorage.getItem('ghSetupSeen')) {
+                    localStorage.setItem('ghSetupSeen', '1');
+                    setTimeout(() => this.openSettings(), 800);
+                }
+            } catch (e) {}
         }
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => new BudgetTracker());
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => { window.budgetApp = new BudgetTracker(); });
+}
 </script>
-```
-
 </body>
 </html>
